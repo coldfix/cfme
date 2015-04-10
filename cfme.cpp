@@ -1,12 +1,5 @@
-// vim: path=.,/usr/include,/opt/fm-lib/include
-
-#include <fm/system.h>
-#include <fm/solution.h>
-#include <fm/vector.h>
-
-#include <fm/solver.h>
-
 #include "cfme.h"
+#include "fm.h"
 
 
 // binomial coefficient [n choose r]
@@ -28,6 +21,7 @@ Int nCr(Int n, Int r)
 }
 
 
+// Shift bits such that the given bit is free.
 template <class Int>
 Int skip_bit(Int pool, size_t bit_index)
 {
@@ -38,19 +32,16 @@ Int skip_bit(Int pool, size_t bit_index)
 }
 
 
-s_fm_vector_t* _next_vector(s_fm_system_t* s, size_t& offs)
+// The total number of inequalities is N for the conditional entropies
+// plus (N choose 2) * #(subsets) for the conditional mutual information.
+template <class Int>
+Int num_elemental_inequalities(Int num_vars)
 {
-    return s->lines[offs++];
+    return num_vars + nCr(num_vars, Int(2)) * Int(1)<<(num_vars-2);
 }
 
 
-void _set_vector_comp(s_fm_vector_t* v, size_t i, z_type_t n)
-{
-    v->vector[i].num = n;
-}
-
-
-s_fm_system_t* elemental_inequalities(size_t num_vars)
+fm::System elemental_inequalities(size_t num_vars)
 {
     // Identify each variable with its index i from I = {0, 1, ..., N-1}.
     // Then entropy is a real valued set function from the power set of
@@ -63,19 +54,18 @@ s_fm_system_t* elemental_inequalities(size_t num_vars)
     // the remaining N-2 variables.
     size_t sub_dim = 1 << (num_vars-2);
 
-    // The total number of inequalities is N for the conditional entropies
-    // plus (N choose 2) * #subsets for the conditional mutual information.
-    size_t nb_lines = num_vars + nCr<size_t>(num_vars, 2) * sub_dim;
+    // Number of initial inequalities
+    size_t nb_lines = num_elemental_inequalities(num_vars);
 
     // The first column signals if this is an inequality or equality. The
     // last column is the right-hand-side of the inequality.
     size_t nb_cols = dim + 2;
 
     // Create the system
-    s_fm_system_t* system = fm_system_alloc(nb_lines, nb_cols);
+    fm::System system = fm::System::create(nb_lines, nb_cols);
 
-    // Index of current vector.
-    size_t offs = 0;
+    // Index of current row.
+    size_t row = 0;
 
     // index of the entropy component corresponding to the joint entropy of
     // all variables. NOTE: since the left-most column is not used, the
@@ -87,11 +77,9 @@ s_fm_system_t* elemental_inequalities(size_t num_vars)
     // the form H(X_i|X_c)>=0 where c = ~ {i}:
     for (size_t i = 0; i < num_vars; ++i) {
         size_t c = all ^ (1 << i);
-        s_fm_vector_t* v = _next_vector(system, offs);
-        _set_vector_comp(v, 0, 1);      // this is an inequality
-        _set_vector_comp(v, all, 1);
-        _set_vector_comp(v, c, -1);
-        fm_vector_compute_key(&v->key, v);
+        fm::Vector v = system.row(row++);
+        v.set(all, 1);
+        v.set(c, -1);
     }
 
     // Add all elemental conditional mutual information positivities, i.e.
@@ -102,15 +90,13 @@ s_fm_system_t* elemental_inequalities(size_t num_vars)
             size_t B = 1 << b;
             for (size_t i = 0; i < sub_dim; ++i) {
                 size_t K = skip_bit(skip_bit(i, a), b);
-                s_fm_vector_t* v = _next_vector(system, offs);
-                _set_vector_comp(v, 0, 1);      // this is an inequality
-                _set_vector_comp(v, A|K, 1);
-                _set_vector_comp(v, B|K, 1);
-                _set_vector_comp(v, A|B|K, -1);
+                fm::Vector v = system.row(row++);
+                v.set(A|K, 1);
+                v.set(B|K, 1);
+                v.set(A|B|K, -1);
                 if (K) {
-                    _set_vector_comp(v, K, -1);
+                    v.set(K, -1);
                 }
-                fm_vector_compute_key(&v->key, v);
             }
         }
     }
@@ -121,22 +107,8 @@ s_fm_system_t* elemental_inequalities(size_t num_vars)
 
 bool solve(size_t num_vars, size_t solve_to)
 {
-    s_fm_system_t* system = elemental_inequalities(num_vars);
-
-    // Solve the given system. Use FM_SOLVER_AUTO_SIMPLIFY to help the solver
-    // to scale automatically
-    s_fm_solution_t* solution = fm_solver_solution_to(
-            system, FM_SOLVER_FAST, solve_to);
-
-    s_fm_system_t* result = fm_solution_to_system(solution);
-
-    // Print the output solution.
-    fm_system_print (stdout, result);
-
-    // Be clean.
-    fm_system_free(system);
-    fm_solution_free(solution);
-    fm_system_free(result);
-
+    fm::System system = elemental_inequalities(num_vars);
+    fm::System solution = system.solution_to(solve_to);
+    solution.print();
     return true;
 }
