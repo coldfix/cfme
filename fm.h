@@ -4,48 +4,81 @@
 #ifndef __FM_H__INCLUDED__
 #define __FM_H__INCLUDED__
 
-# include <memory>          // shared_ptr
-
-
-// forward declarations
-struct s_fm_system;
-struct s_fm_vector;
+# include <iostream>
+# include <set>
+# include <valarray>
+# include <vector>
 
 
 namespace fm
 {
-    template <class T>
-        using P = std::shared_ptr<T>;
-
-
     class System;
     class Vector;
+
+    typedef long Value;
 
 
     class System
     {
-        P<s_fm_system> sys;
-
     public:
-        explicit System(s_fm_system* system);
+        std::vector<Vector> ineqs;
+        std::vector<Vector> eqns;
+        size_t num_cols;
 
-        static System create(size_t nb_lines, size_t nb_cols);
+        explicit System(size_t nb_lines, size_t nb_cols);
 
-        Vector row(int row);
-        System solution_to(int to);
-        void print(FILE* stream=NULL);
+        void clear();
+
+        void add_inequality(Vector&& v);
+        void add_equality(Vector&& v);
+
+        void solve_to(int to);
+
+        bool is_redundant(const Vector&) const;
+        void eliminate(int i, int& s);
+
+        friend std::ostream& operator << (std::ostream&, const System&);
     };
+
 
     class Vector
     {
-        s_fm_vector* vec;
-
     public:
-        explicit Vector(s_fm_vector* vector);
-        ~Vector();
+        std::valarray<Value> values;
+        std::set<size_t> comb;
 
-        void set(int i, int n);
+    private:
+        Vector() = default;
+    public:
+        explicit Vector(size_t size, int id=-1);
+
+        // enable move semantics
+        Vector(Vector&&) = default;
+        Vector& operator = (Vector&&) = default;
+
+        // delete copy semantics to make sure, no excessive copying will
+        // occur on re-allocation of the containing vector:
+    private:
+        Vector(const Vector&) = default;
+        Vector& operator = (const Vector&) = delete;
+    public:
+
+        // use this instead
+        Vector copy() const;
+
+        bool empty() const;
+
+        size_t size() const;
+        void set(size_t i, Value n);
+        Value get(size_t i) const;
+
+        Vector eliminate(const Vector& v, size_t i) const;
+        void remove(size_t i);
+        void normalize();
+
+        friend std::ostream& operator << (std::ostream&, const Vector&);
     };
+
 }
 
 #endif  // include guard

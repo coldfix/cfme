@@ -6,8 +6,7 @@
 
 # include <cstddef>
 
-// num_vars: total number of cells (=2*width)
-// solve_to: number of vars after elimination
-bool solve(size_t num_vars, size_t solve_to);
+// width: width of the CCA (=1/2 * total number of cells)
+bool solve(size_t width);
 
 #endif  // include guard

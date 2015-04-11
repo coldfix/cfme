@@ -2,6 +2,11 @@
 #include "fm.h"
 #include "number.h"
 
+#include <utility>
+
+
+using std::move;
+
 
 // The total number of inequalities is N for the conditional entropies
 // plus (N choose 2) * #(subsets) for the conditional mutual information.
@@ -12,6 +17,7 @@ Int num_elemental_inequalities(Int num_vars)
 }
 
 
+// Return elemental inequalities for a system of num_vars random variables.
 fm::System elemental_inequalities(size_t num_vars)
 {
     // Identify each variable with its index i from I = {0, 1, ..., N-1}.
@@ -28,15 +34,16 @@ fm::System elemental_inequalities(size_t num_vars)
     // Number of initial inequalities
     size_t nb_lines = num_elemental_inequalities(num_vars);
 
-    // The first column signals if this is an inequality or equality. The
-    // last column is the right-hand-side of the inequality.
-    size_t nb_cols = dim + 2;
+    // The first column is not used to
+    //  - make the bit representation of indices match the entropy set
+    //  - better integrate with GLPK's 1-based indexing
+    size_t nb_cols = dim + 1;
 
     // Create the system
-    fm::System system = fm::System::create(nb_lines, nb_cols);
+    fm::System system = fm::System(nb_lines, nb_cols);
 
-    // Index of current row.
-    size_t row = 0;
+    // Unique ID for the current row (used for redundancy check short-cut):
+    size_t row_id = 0;
 
     // index of the entropy component corresponding to the joint entropy of
     // all variables. NOTE: since the left-most column is not used, the
@@ -48,9 +55,10 @@ fm::System elemental_inequalities(size_t num_vars)
     // the form H(X_i|X_c)>=0 where c = ~ {i}:
     for (size_t i = 0; i < num_vars; ++i) {
         size_t c = all ^ (1 << i);
-        fm::Vector v = system.row(row++);
+        fm::Vector v(nb_cols, row_id++);
         v.set(all, 1);
         v.set(c, -1);
+        system.add_inequality(move(v));
     }
 
     // Add all elemental conditional mutual information positivities, i.e.
@@ -61,13 +69,14 @@ fm::System elemental_inequalities(size_t num_vars)
             size_t B = 1 << b;
             for (size_t i = 0; i < sub_dim; ++i) {
                 size_t K = skip_bit(skip_bit(i, a), b);
-                fm::Vector v = system.row(row++);
+                fm::Vector v(nb_cols, row_id++);
                 v.set(A|K, 1);
                 v.set(B|K, 1);
                 v.set(A|B|K, -1);
                 if (K) {
                     v.set(K, -1);
                 }
+                system.add_inequality(move(v));
             }
         }
     }
@@ -76,10 +85,25 @@ fm::System elemental_inequalities(size_t num_vars)
 }
 
 
-bool solve(size_t num_vars, size_t solve_to)
+// Enumerate information inequalities in second layer of a CCA of the given
+// width. The initial layer is initialized to be mutually independent. The
+// layout of the CCA is as described above (c.f. `add_causal_constraints`).
+bool solve(size_t width)
 {
+    size_t num_vars = width*2;
+    size_t solve_to = 1<<width;
+
     fm::System system = elemental_inequalities(num_vars);
-    fm::System solution = system.solution_to(solve_to);
-    solution.print();
+    system.solve_to(solve_to);
+
+    // used to remove inequalities implied by elemental inequalities on the
+    // reduced space:
+    fm::System target = elemental_inequalities(width);
+    for (auto&& v : system.ineqs) {
+        if (target.is_redundant(v))
+            continue;
+        target.add_inequality(v.copy());
+        std::cout << v << std::endl;
+    }
     return true;
 }
