@@ -85,6 +85,56 @@ fm::System elemental_inequalities(size_t num_vars)
 }
 
 
+// Add mutual independence constraints for the initial layer of a CCA. The
+// variables of the initial layer are assumed to correspond to the most
+// signigicant bits of the entropy space index. The system must be created
+// with `num_vars=2*width` variables.
+void set_initial_state_iid(fm::System& s, size_t width)
+{
+    size_t dim = 1<<(2*width);
+    size_t layer1 = ((1<<width) - 1) << width;
+    for (size_t cell = 0; cell < width; ++cell) {
+        size_t var = 1 << (width + cell);
+        size_t other = layer1 ^ var;
+        fm::Vector v(dim);
+        v.set(var, 1);
+        v.set(other, 1);
+        v.set(layer1, -1);
+        s.add_equality(move(v));
+    }
+}
+
+
+// Iterate causal constraints in first layer of a CCA of the given width.
+//
+// Each constraint is a conditional independency which is returned as the
+// vector of its coefficients for the joint entropies.
+//
+// The structure of the CCA is assumed to be hexagonal:
+//
+//     A0  A1  A2  A3
+//       B0  B1  B2  B3
+void add_causal_constraints(fm::System& s, size_t width)
+{
+    size_t dim = 1<<(2*width);
+    size_t all = dim-1;
+    // for each dependent variable i, add the conditional mutual
+    // independence 0 = I(i:Nd(i)|Pa(i)):
+    for (size_t i = 0; i < width; ++i) {
+        size_t j = (i+1) % width;
+        size_t Var = 1<<i;
+        size_t Pa = (1<<(width+i)) | (1<<(width+j));
+        size_t Nd = all ^ (Var | Pa);
+        fm::Vector v(dim);
+        v.set(Pa|Var, 1);
+        v.set(Pa|Nd, 1);
+        v.set(Pa, -1);
+        v.set(all, -1);
+        s.add_equality(move(v));
+    }
+}
+
+
 // Enumerate information inequalities in second layer of a CCA of the given
 // width. The initial layer is initialized to be mutually independent. The
 // layout of the CCA is as described above (c.f. `add_causal_constraints`).
@@ -94,6 +144,8 @@ bool solve(size_t width)
     size_t solve_to = 1<<width;
 
     fm::System system = elemental_inequalities(num_vars);
+    set_initial_state_iid(system, width);
+    add_causal_constraints(system, width);
     system.solve_to(solve_to);
 
     // used to remove inequalities implied by elemental inequalities on the
