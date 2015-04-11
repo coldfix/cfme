@@ -5,9 +5,13 @@
 #define __FM_H__INCLUDED__
 
 # include <iostream>
+# include <memory>
 # include <set>
 # include <valarray>
 # include <vector>
+
+
+struct glp_prob;
 
 
 namespace fm
@@ -17,9 +21,31 @@ namespace fm
 
     typedef long Value;
 
+    template <class T>
+        using P = std::shared_ptr<T>;
+
+
+    // Minimization problem
+    class Problem
+    {
+        P<glp_prob> prob;
+        size_t num_cols;
+
+        void set_mat_row(int i, const Vector&);
+    public:
+        Problem();
+        explicit Problem(size_t num_cols);
+
+        void add_equality(const Vector&);
+        void add_inequality(const Vector&);
+
+        bool is_redundant(const Vector&) const;
+    };
+
 
     class System
     {
+        Problem problem;
     public:
         std::vector<Vector> ineqs;
         std::vector<Vector> eqns;
@@ -27,7 +53,7 @@ namespace fm
 
         explicit System(size_t nb_lines, size_t nb_cols);
 
-        void clear();
+        void clear(size_t nb_lines);
 
         void add_inequality(Vector&& v);
         void add_equality(Vector&& v);

@@ -2,7 +2,10 @@
 
 
 #include <cassert>
+#include <cmath>
 #include <utility>      // move
+
+#include <glpk.h>
 
 #include "number.h"
 #include "fm.h"
@@ -13,32 +16,106 @@ using std::move;
 
 namespace fm
 {
+
+    // class Problem
+
+    Problem::Problem()
+    {
+    }
+
+    Problem::Problem(size_t nb_cols)
+        : num_cols(nb_cols)
+    {
+        prob.reset(glp_create_prob(), glp_delete_prob);
+        glp_set_obj_dir(prob.get(), GLP_MIN);
+        glp_add_cols(prob.get(), num_cols-1);
+        for (int j = 1; j < num_cols; ++j) {
+            glp_set_col_bnds(prob.get(), j, GLP_LO, 0.0, NAN);
+        }
+    }
+
+    void Problem::set_mat_row(int i, const Vector& v)
+    {
+        std::vector<int> indices;
+        std::vector<double> values;
+        indices.reserve(v.size());
+        values.reserve(v.size());
+        indices.push_back(0);       // ind[0] is not used by GLPK
+        values.push_back(NAN);      // val[0] is not used by GLPK
+        for (int i = 1; i < v.size(); ++i) {
+            Value val = v.get(i);
+            if (val) {
+                indices.push_back(i);
+                values.push_back(val);
+            }
+        }
+        glp_set_mat_row(prob.get(), i,
+                indices.size()-1, indices.data(), values.data());
+    }
+
+    void Problem::add_equality(const Vector& v)
+    {
+        int i = glp_add_rows(prob.get(), 1);
+        glp_set_row_bnds(prob.get(), i, GLP_FX, 0.0, 0.0);
+        set_mat_row(i, v);
+    }
+
+    void Problem::add_inequality(const Vector& v)
+    {
+        int i = glp_add_rows(prob.get(), 1);
+        glp_set_row_bnds(prob.get(), i, GLP_LO, 0.0, NAN);
+        set_mat_row(i, v);
+    }
+
+    bool Problem::is_redundant(const Vector& v) const
+    {
+        assert(v.size() == num_cols);
+        for (int i = 1; i < num_cols; ++i) {
+            glp_set_obj_coef(prob.get(), i, v.get(i));
+        }
+        glp_std_basis(prob.get());
+        glp_smcp parm;
+        glp_init_smcp(&parm);
+        parm.msg_lev = GLP_MSG_ERR;
+        int result = glp_simplex(prob.get(), &parm);
+        if (result != 0) {
+            return false;       // TODO: ERROR, raise exception?
+        }
+        return glp_get_status(prob.get()) == GLP_OPT;
+    }
+
     // class System
 
     System::System(size_t nb_lines, size_t nb_cols)
         : num_cols(nb_cols)
     {
-        ineqs.reserve(nb_lines);
+        clear(nb_lines);
     }
 
-    void System::clear()
+    void System::clear(size_t new_expected)
     {
         ineqs.clear();
         eqns.clear();
+        ineqs.reserve(new_expected);
+        problem = Problem(num_cols);
     }
 
     void System::add_equality(Vector&& vec)
     {
         assert(vec.size() == num_cols);
-        if (!vec.empty())
-            ineqs.push_back(move(vec));
+        if (vec.empty())
+            return;
+        problem.add_equality(vec);
+        eqns.push_back(move(vec));
     }
 
     void System::add_inequality(Vector&& vec)
     {
         assert(vec.size() == num_cols);
-        if (!vec.empty())
-            eqns.push_back(move(vec));
+        if (vec.empty())
+            return;
+        problem.add_inequality(vec);
+        ineqs.push_back(move(vec));
     }
 
     void System::solve_to(int to)
@@ -51,19 +128,21 @@ namespace fm
 
     bool System::is_redundant(const Vector& v) const
     {
-        // TODO: drop if obviously redundant (multiple of other)
-        // TODO: drop redundant constraints
-        return false;
+        return problem.is_redundant(v);
     }
 
     void System::eliminate(int index, int& step_counter)
     {
-        std::cout << "elim: " << index << " " << step_counter << std::endl;
+        std::cout
+            << "eliminate: " << index
+            << " ineqs: " << ineqs.size()
+            << " eqs: " << eqns.size()
+            << std::endl;
 
         --num_cols;
         std::vector<Vector> _ineqs = move(ineqs);
         std::vector<Vector> _eqns = move(eqns);
-        clear();
+        clear(_ineqs.size());
 
         // Partition inequality constraints into (positive, negative, zero)
         // coefficient for the given index.

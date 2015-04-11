@@ -1,7 +1,7 @@
 FM=/opt/fm-lib
 
 CFLAGS=-I$(FM)/include -std=c++11
-LFLAGS=-L$(FM)/lib -lfm -Wl,-rpath=$(FM)/lib
+LFLAGS=-L$(FM)/lib -lfm -lglpk -Wl,-rpath=$(FM)/lib
 
 cfme: main.o cfme.o fm.o
 	g++ $(LFLAGS) $^ -o $@
