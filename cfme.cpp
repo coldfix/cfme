@@ -1,35 +1,6 @@
 #include "cfme.h"
 #include "fm.h"
-
-
-// binomial coefficient [n choose r]
-template <class Int>
-Int nCr(Int n, Int r)
-{
-    if (r > n)
-        return 0;
-    if (r * 2 > n)
-        r = n - r;
-    if (r == 0)
-        return 1;
-    Int result = n;
-    for (Int i = 2; i <= r; ++i) {
-        result *= (n-i+1);
-        result /= i;
-    }
-    return result;
-}
-
-
-// Shift bits such that the given bit is free.
-template <class Int>
-Int skip_bit(Int pool, size_t bit_index)
-{
-    Int bit = Int(1) << bit_index;
-    Int left = (pool & ~(bit-1)) << 1;
-    Int right = pool & (bit-1);
-    return left | right;
-}
+#include "number.h"
 
 
 // The total number of inequalities is N for the conditional entropies
