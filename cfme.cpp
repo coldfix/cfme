@@ -42,9 +42,6 @@ fm::System elemental_inequalities(size_t num_vars)
     // Create the system
     fm::System system = fm::System(nb_lines, nb_cols);
 
-    // Unique ID for the current row (used for redundancy check short-cut):
-    size_t row_id = 0;
-
     // index of the entropy component corresponding to the joint entropy of
     // all variables. NOTE: since the left-most column is not used, the
     // variables involved in a joint entropy correspond exactly to the bit
@@ -55,7 +52,7 @@ fm::System elemental_inequalities(size_t num_vars)
     // the form H(X_i|X_c)>=0 where c = ~ {i}:
     for (size_t i = 0; i < num_vars; ++i) {
         size_t c = all ^ (1 << i);
-        fm::Vector v(nb_cols, row_id++);
+        fm::Vector v(nb_cols);
         v.set(all, 1);
         v.set(c, -1);
         system.add_inequality(move(v));
@@ -69,7 +66,7 @@ fm::System elemental_inequalities(size_t num_vars)
             size_t B = 1 << b;
             for (size_t i = 0; i < sub_dim; ++i) {
                 size_t K = skip_bit(skip_bit(i, a), b);
-                fm::Vector v(nb_cols, row_id++);
+                fm::Vector v(nb_cols);
                 v.set(A|K, 1);
                 v.set(B|K, 1);
                 v.set(A|B|K, -1);
@@ -146,6 +143,7 @@ bool solve(size_t width)
     fm::System system = elemental_inequalities(num_vars);
     set_initial_state_iid(system, width);
     add_causal_constraints(system, width);
+
     system.solve_to(solve_to);
 
     // used to remove inequalities implied by elemental inequalities on the

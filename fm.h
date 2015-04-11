@@ -46,6 +46,9 @@ namespace fm
     class System
     {
         Problem problem;
+
+        // Unique ID for the current row (used for redundancy check short-cut):
+        size_t next_row_id = 0;
     public:
         std::vector<Vector> ineqs;
         std::vector<Vector> eqns;
@@ -76,7 +79,7 @@ namespace fm
     private:
         Vector() = default;
     public:
-        explicit Vector(size_t size, int id=-1);
+        explicit Vector(size_t size);
 
         // enable move semantics
         Vector(Vector&&) = default;

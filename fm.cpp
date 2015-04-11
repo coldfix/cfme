@@ -114,6 +114,8 @@ namespace fm
         assert(vec.size() == num_cols);
         if (vec.empty())
             return;
+        if (vec.comb.empty())
+            vec.comb.insert(next_row_id++);
         problem.add_inequality(vec);
         ineqs.push_back(move(vec));
     }
@@ -205,12 +207,9 @@ namespace fm
 
     // class Vector
 
-    Vector::Vector(size_t size, int id)
+    Vector::Vector(size_t size)
         : values(size)
     {
-        if (id != -1) {
-            comb.insert(id);
-        }
     }
 
     Vector Vector::copy() const
