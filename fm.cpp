@@ -258,21 +258,14 @@ namespace fm
     // Inplace elimination of coefficients.
     Vector Vector::eliminate(const Vector& v, size_t i) const
     {
-        Vector r;
-
-        r.comb = comb;
-        for (auto x : v.comb) {
-            r.comb.insert(x);
-        }
-
         Value a = get(i);
         Value b = v.get(i);
         Value s = -sign(a*b);
         a = abs(a);
         b = abs(b);
         Value div = gcd(a, b);
-
-        r.values = values * (b / div) + v.values * (s * (a / div));
+        Vector r = scaled_addition(*this, (b / div),
+                                   v, s * (a / div));
         r.normalize();
         r.remove(i);
         return r;
@@ -301,8 +294,26 @@ namespace fm
         }
     }
 
+    // friends
 
-    // IO
+    Vector scaled_addition(const Vector& v0, Value s0,
+                           const Vector& v1, Value s1)
+    {
+        Vector r;
+        r.values = scaled_addition(v0.values, s0, v1.values, s1);
+        r.comb = v0.comb;
+        for (auto&& x : v1.comb) {
+            r.comb.insert(x);
+        }
+        return r;
+    }
+
+    ValArray scaled_addition(const ValArray& v0, Value s0,
+                             const ValArray& v1, Value s1)
+    {
+        assert(v0.size() == v1.size());
+        return v0 * s0 + v1 * s1;
+    }
 
     std::ostream& operator << (std::ostream& o, const System& s)
     {

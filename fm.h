@@ -20,6 +20,7 @@ namespace fm
     class Vector;
 
     typedef long Value;
+    typedef std::valarray<Value> ValArray;
 
     template <class T>
         using P = std::shared_ptr<T>;
@@ -73,7 +74,7 @@ namespace fm
     class Vector
     {
     public:
-        std::valarray<Value> values;
+        ValArray values;
         std::set<size_t> comb;
 
     private:
@@ -106,8 +107,14 @@ namespace fm
         void normalize();
 
         friend std::ostream& operator << (std::ostream&, const Vector&);
+        friend Vector scaled_addition(const Vector& v0, Value s0,
+                                      const Vector& v1, Value s1);
     };
 
+    Vector scaled_addition(const Vector& v0, Value s0,
+                           const Vector& v1, Value s1);
+    ValArray scaled_addition(const ValArray& v0, Value s0,
+                             const ValArray& v1, Value s1);
 }
 
 #endif  // include guard
