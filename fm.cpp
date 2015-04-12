@@ -92,6 +92,18 @@ namespace fm
         clear(nb_lines);
     }
 
+    System System::copy() const
+    {
+        System s(ineqs.size(), num_cols);
+        for (auto&& v : ineqs) {
+            s.add_inequality(v.copy());
+        }
+        for (auto&& v : eqns) {
+            s.add_equality(v.copy());
+        }
+        return s;
+    }
+
     void System::clear(size_t new_expected)
     {
         ineqs.clear();
@@ -292,6 +304,16 @@ namespace fm
         if (div > 1) {
             values /= div;
         }
+    }
+
+    Vector Vector::injection(size_t dim) const
+    {
+        assert(dim >= size());
+        Vector r(dim);
+        for (size_t i = 0; i < size(); ++i) {
+            r.set(i, get(i));
+        }
+        return r;
     }
 
     // friends

@@ -57,6 +57,16 @@ namespace fm
 
         explicit System(size_t nb_lines, size_t nb_cols);
 
+        System(System&&) = default;
+        System& operator = (System&&) = default;
+
+        // no copying
+        System(const System&) = delete;
+        System& operator = (const System&) = delete;
+
+        // use this instead
+        System copy() const;
+
         void clear(size_t nb_lines);
 
         void add_inequality(Vector&& v);
@@ -105,6 +115,8 @@ namespace fm
         Vector eliminate(const Vector& v, size_t i) const;
         void remove(size_t i);
         void normalize();
+
+        Vector injection(size_t dim) const;
 
         friend std::ostream& operator << (std::ostream&, const Vector&);
         friend Vector scaled_addition(const Vector& v0, Value s0,

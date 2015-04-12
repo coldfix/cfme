@@ -137,23 +137,61 @@ void add_causal_constraints(fm::System& s, size_t width)
 // layout of the CCA is as described above (c.f. `add_causal_constraints`).
 bool solve(size_t width)
 {
+    using std::cout;
+    using std::endl;
+
     size_t num_vars = width*2;
     size_t solve_to = 1<<width;
 
+    cout << "Initialize CCA with N=" << width << endl;
     fm::System system = elemental_inequalities(num_vars);
     set_initial_state_iid(system, width);
     add_causal_constraints(system, width);
 
+    // make a copy that can be used later to verify that inequalities are
+    // indeed implied (consistency check for FM algorithm):
+    fm::System orig = system.copy();
+    cout << endl;
+
+    cout << "Eliminate initial layer" << endl;
     system.solve_to(solve_to);
+    cout << endl;
+
+    cout << "Reduced to "
+        << system.ineqs.size() << " inequalities and "
+        << system.eqns.size() << " equalities.\n"
+        << "Expecting " << num_elemental_inequalities(width)
+        << " elemental inequalities.\n"
+        << endl;
 
     // used to remove inequalities implied by elemental inequalities on the
     // reduced space:
     fm::System target = elemental_inequalities(width);
+
+    // consistency checks
+    cout << "Perform consistency checks: " << endl;
+    cout << " - Search for false positives" << endl;
+    for (auto&& v : system.ineqs) {
+        if (!orig.is_redundant(v.injection(orig.num_cols))) {
+            cout << "   FALSE: " << v << endl;
+        }
+    }
+    cout << " - Search for undiscovered elemental inequalities" << endl;
+    for (auto&& v : target.ineqs) {
+        if (!system.is_redundant(v)) {
+            cout << "   UNDISCOVERED: " << v << endl;
+        }
+    }
+    cout << endl;
+
+    cout << "List non-trivial inequalities: " << endl;
     for (auto&& v : system.ineqs) {
         if (target.is_redundant(v))
             continue;
         target.add_inequality(v.copy());
-        std::cout << v << std::endl;
+        cout << v << endl;
     }
+    cout << endl;
+
     return true;
 }
