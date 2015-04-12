@@ -147,12 +147,6 @@ namespace fm
 
     void System::eliminate(int index, int& step_counter)
     {
-        std::cout
-            << "eliminate: " << index
-            << " ineqs: " << ineqs.size()
-            << " eqs: " << eqns.size()
-            << std::endl;
-
         --num_cols;
         std::vector<Vector> _ineqs = move(ineqs);
         std::vector<Vector> _eqns = move(eqns);
@@ -174,6 +168,13 @@ namespace fm
                 add_inequality(move(vec));
             }
         }
+
+        std::cout
+            << "eliminate: " << index
+            << ", ineqs: " << _ineqs.size()
+            << ", eqs: " << _eqns.size()
+            << ", candidates: " << pos.size()*neg.size()
+            << std::endl;
 
         std::vector<Vector> eq_with;
         eq_with.reserve(_eqns.size());
