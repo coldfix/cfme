@@ -43,6 +43,7 @@ Int sign(Int a)
 
 
 // Return greatest common divisor using Euclid's Algorithm.
+// Note that it returns gcd(0, a) = a.
 template <class Int>
 Int gcd(Int a, Int b)
 {

@@ -289,15 +289,7 @@ namespace fm
     {
         Value div(0);
         for (const Value& x : values) {
-            if (!x) {
-                continue;
-            }
-            if (div) {
-                div = gcd<Value>(div, abs(x));
-            }
-            else {
-                div = x;
-            }
+            div = gcd<Value>(div, abs(x));
             if (div == 1) {
                 return;
             }
