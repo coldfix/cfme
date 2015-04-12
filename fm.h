@@ -116,7 +116,7 @@ namespace fm
         void remove(size_t i);
         void normalize();
 
-        Vector injection(size_t dim) const;
+        Vector injection(size_t dim, size_t shift=0) const;
 
         friend std::ostream& operator << (std::ostream&, const Vector&);
         friend Vector scaled_addition(const Vector& v0, Value s0,

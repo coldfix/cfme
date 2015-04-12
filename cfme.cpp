@@ -147,51 +147,91 @@ bool solve(size_t width)
     fm::System system = elemental_inequalities(num_vars);
     set_initial_state_iid(system, width);
     add_causal_constraints(system, width);
-
-    // make a copy that can be used later to verify that inequalities are
-    // indeed implied (consistency check for FM algorithm):
-    fm::System orig = system.copy();
     cout << endl;
 
-    cout << "Eliminate initial layer" << endl;
-    system.solve_to(solve_to);
-    cout << endl;
+    for (size_t layer = 1; ; ++layer) {
 
-    cout << "Reduced to "
-        << system.ineqs.size() << " inequalities and "
-        << system.eqns.size() << " equalities.\n"
-        << "Expecting " << num_elemental_inequalities(width)
-        << " elemental inequalities.\n"
-        << endl;
+        // make a copy that can be used later to verify that inequalities
+        // are indeed implied (consistency check for FM algorithm):
+        fm::System orig = system.copy();
 
-    // used to remove inequalities implied by elemental inequalities on the
-    // reduced space:
-    fm::System target = elemental_inequalities(width);
+        cout << "Eliminate layer " << layer << endl;
+        system.solve_to(solve_to);
+        cout << endl;
 
-    // consistency checks
-    cout << "Perform consistency checks: " << endl;
-    cout << " - Search for false positives" << endl;
-    for (auto&& v : system.ineqs) {
-        if (!orig.is_redundant(v.injection(orig.num_cols))) {
-            cout << "   FALSE: " << v << endl;
+        cout << "Reduced to "
+            << system.ineqs.size() << " inequalities and "
+            << system.eqns.size() << " equalities.\n"
+            << "Expecting " << num_elemental_inequalities(width)
+            << " elemental inequalities.\n"
+            << endl;
+
+        // used to remove inequalities implied by elemental inequalities on
+        // the reduced space:
+        fm::System target = elemental_inequalities(width);
+
+        // consistency checks
+        cout << "Perform consistency checks: " << endl;
+        cout << " - Search for false positives" << endl;
+        bool consistent = true;
+        for (auto&& v : system.ineqs) {
+            if (!orig.is_redundant(v.injection(orig.num_cols))) {
+                cout << "   FALSE: " << v << endl;
+                consistent = false;
+            }
         }
-    }
-    cout << " - Search for undiscovered elemental inequalities" << endl;
-    for (auto&& v : target.ineqs) {
-        if (!system.is_redundant(v)) {
-            cout << "   UNDISCOVERED: " << v << endl;
+        cout << " - Search for undiscovered elemental inequalities" << endl;
+        for (auto&& v : target.ineqs) {
+            if (!system.is_redundant(v)) {
+                cout << "   UNDISCOVERED: " << v << endl;
+                consistent = false;
+            }
         }
-    }
-    cout << endl;
+        cout << endl;
+        if (!consistent) {
+            return false;
+        }
 
-    cout << "List non-trivial inequalities: " << endl;
-    for (auto&& v : system.ineqs) {
-        if (target.is_redundant(v))
-            continue;
-        target.add_inequality(v.copy());
-        cout << v << endl;
+        // enumerate non-trivial constraints
+        std::vector<fm::Vector> extra_ineqs;
+        std::vector<fm::Vector> extra_eqns;
+        cout << "List non-trivial inequalities: " << endl;
+        for (auto&& v : system.ineqs) {
+            if (target.is_redundant(v))
+                continue;
+            target.add_inequality(v.copy());
+            extra_ineqs.push_back(v.copy());
+            cout << v << endl;
+        }
+        if (extra_ineqs.empty()) {
+            cout << " - None." << endl;
+        }
+        cout << endl;
+        cout << "List equalities: " << endl;
+        for (auto&& v : system.eqns) {
+            extra_eqns.push_back(v.copy());
+        }
+        if (extra_eqns.empty()) {
+            cout << " - None." << endl;
+        }
+        cout << endl;
+
+        // only trivial inequalities -> return:
+        if (extra_ineqs.empty() && extra_eqns.empty()) {
+            break;
+        }
+
+        cout << "Initialize layer " << layer+1 << endl;
+        system = elemental_inequalities(num_vars);
+        add_causal_constraints(system, width);
+        for (auto&& v : extra_ineqs) {
+            system.add_inequality(v.injection(system.num_cols, width));
+        }
+        for (auto&& v : extra_eqns) {
+            system.add_equality(v.injection(system.num_cols, width));
+        }
+
     }
-    cout << endl;
 
     return true;
 }

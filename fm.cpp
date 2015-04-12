@@ -306,12 +306,12 @@ namespace fm
         }
     }
 
-    Vector Vector::injection(size_t dim) const
+    Vector Vector::injection(size_t dim, size_t shift) const
     {
-        assert(dim >= size());
+        assert(dim >= size()<<shift);
         Vector r(dim);
         for (size_t i = 0; i < size(); ++i) {
-            r.set(i, get(i));
+            r.set(i<<shift, get(i));
         }
         return r;
     }
