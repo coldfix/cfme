@@ -29,10 +29,11 @@ namespace fm
     class Problem
     {
         P<glp_prob> prob;
-        size_t num_cols;
 
         void set_mat_row(int i, const Vector&);
     public:
+        size_t num_cols;
+
         Problem();
         explicit Problem(size_t num_cols);
 
@@ -45,8 +46,6 @@ namespace fm
 
     class System
     {
-        Problem problem;
-
         // Unique ID for the current row (used for redundancy check short-cut):
         size_t next_row_id = 0;
 
@@ -75,7 +74,7 @@ namespace fm
 
         void solve_to(int to);
 
-        bool is_redundant(const Vector&) const;
+        Problem problem() const;
         void eliminate(int i, int& s);
 
         friend std::ostream& operator << (std::ostream&, const System&);

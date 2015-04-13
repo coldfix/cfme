@@ -109,7 +109,6 @@ namespace fm
         ineqs.clear();
         eqns.clear();
         ineqs.reserve(new_expected);
-        problem = Problem(num_cols);
     }
 
     void System::add_equality(Vector&& vec)
@@ -117,7 +116,6 @@ namespace fm
         assert(vec.size() == num_cols);
         if (vec.empty())
             return;
-        problem.add_equality(vec);
         eqns.push_back(move(vec));
     }
 
@@ -126,7 +124,6 @@ namespace fm
         assert(vec.size() == num_cols);
         if (vec.empty())
             return;
-        problem.add_inequality(vec);
         ineqs.push_back(move(vec));
     }
 
@@ -165,9 +162,16 @@ namespace fm
         return (pos*neg) - (pos+neg);
     }
 
-    bool System::is_redundant(const Vector& v) const
+    Problem System::problem() const
     {
-        return problem.is_redundant(v);
+        Problem p(num_cols);
+        for (auto&& vec : eqns) {
+            p.add_equality(vec);
+        }
+        for (auto&& vec : ineqs) {
+            p.add_inequality(vec);
+        }
+        return p;
     }
 
     void System::eliminate(int index, int& step_counter)
@@ -230,11 +234,15 @@ namespace fm
         else {
             int step = step_counter++;
 
+            Problem prob = problem();
+
             for (auto&& p : pos) {
                 for (auto&& n : neg) {
                     Vector v = p.eliminate(n, index);
-                    if (!is_redundant(v))
+                    if (!prob.is_redundant(v)) {
+                        prob.add_inequality(v);
                         add_inequality(move(v));
+                    }
                 }
             }
         }

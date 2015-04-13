@@ -153,7 +153,7 @@ bool solve(size_t width)
 
         // make a copy that can be used later to verify that inequalities
         // are indeed implied (consistency check for FM algorithm):
-        fm::System orig = system.copy();
+        fm::Problem orig_lp = system.problem();
 
         cout << "Eliminate layer " << layer << endl;
         system.solve_to(solve_to);
@@ -175,14 +175,15 @@ bool solve(size_t width)
         cout << " - Search for false positives" << endl;
         bool consistent = true;
         for (auto&& v : system.ineqs) {
-            if (!orig.is_redundant(v.injection(orig.num_cols))) {
+            if (!orig_lp.is_redundant(v.injection(orig_lp.num_cols))) {
                 cout << "   FALSE: " << v << endl;
                 consistent = false;
             }
         }
         cout << " - Search for undiscovered elemental inequalities" << endl;
+        fm::Problem sys_prob = system.problem();
         for (auto&& v : target.ineqs) {
-            if (!system.is_redundant(v)) {
+            if (!sys_prob.is_redundant(v)) {
                 cout << "   UNDISCOVERED: " << v << endl;
                 consistent = false;
             }
@@ -196,10 +197,11 @@ bool solve(size_t width)
         std::vector<fm::Vector> extra_ineqs;
         std::vector<fm::Vector> extra_eqns;
         cout << "List non-trivial inequalities: " << endl;
+        fm::Problem tgt_prob = target.problem();
         for (auto&& v : system.ineqs) {
-            if (target.is_redundant(v))
+            if (tgt_prob.is_redundant(v))
                 continue;
-            target.add_inequality(v.copy());
+            tgt_prob.add_inequality(v.copy());
             extra_ineqs.push_back(v.copy());
             cout << v << endl;
         }
