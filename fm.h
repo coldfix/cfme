@@ -50,6 +50,8 @@ namespace fm
 
         // Unique ID for the current row (used for redundancy check short-cut):
         size_t next_row_id = 0;
+
+        int get_rank(int) const;
     public:
         std::vector<Vector> ineqs;
         std::vector<Vector> eqns;

@@ -135,9 +135,36 @@ namespace fm
     void System::solve_to(int to)
     {
         int step_count = 0;
-        for (int i = num_cols-1; i >= to; --i) {
-            eliminate(i, step_count);
+
+        while (num_cols > to) {
+            int best_index = to;
+            int best_rank = get_rank(to);
+            for (int i = to+1; i < num_cols; ++i) {
+                int rank = get_rank(i);
+                if (rank < best_rank) {
+                    best_index = i;
+                    best_rank = rank;
+                }
+            }
+            eliminate(best_index, step_count);
         }
+
+    }
+
+    int System::get_rank(int index) const
+    {
+        int pos = 0;
+        int neg = 0;
+        for (auto&& vec : ineqs) {
+            Value val = vec.get(index);
+            if (val > 0) {
+                ++pos;
+            }
+            else if (val < 0) {
+                ++neg;
+            }
+        }
+        return (pos*neg) - (pos+neg);
     }
 
     bool System::is_redundant(const Vector& v) const
