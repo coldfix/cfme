@@ -135,6 +135,21 @@ namespace fm
     void System::solve_to(int to)
     {
         int step_count = 0;
+
+        // first eliminate equalities:
+        for (int i = num_cols-1; i >= to; --i) {
+            // TODO: heuristic for choosing equation?
+            for (int eq = 0; eq < eqns.size(); ++eq) {
+                // any equality with non-zero index will do to eliminate
+                // all others, so the next index can be checked afterwards:
+                if (eqns[eq].get(i)) {
+                    eliminate(i, step_count);
+                    break;
+                }
+            }
+        }
+
+        // TODO: eliminate variables first that minimize number of candidates
         for (int i = num_cols-1; i >= to; --i) {
             eliminate(i, step_count);
         }
@@ -142,6 +157,7 @@ namespace fm
 
     bool System::is_redundant(const Vector& v) const
     {
+        // TODO: quasi-syntactical redundancy (lassez et al)
         return problem.is_redundant(v);
     }
 
