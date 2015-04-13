@@ -6,7 +6,6 @@
 
 # include <iostream>
 # include <memory>
-# include <set>
 # include <valarray>
 # include <vector>
 
@@ -87,7 +86,6 @@ namespace fm
     {
     public:
         ValArray values;
-        std::set<size_t> comb;
 
     private:
         Vector() = default;

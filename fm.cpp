@@ -126,8 +126,6 @@ namespace fm
         assert(vec.size() == num_cols);
         if (vec.empty())
             return;
-        if (vec.comb.empty())
-            vec.comb.insert(next_row_id++);
         problem.add_inequality(vec);
         ineqs.push_back(move(vec));
     }
@@ -235,8 +233,6 @@ namespace fm
             for (auto&& p : pos) {
                 for (auto&& n : neg) {
                     Vector v = p.eliminate(n, index);
-                    if (v.comb.size() > 2+step)
-                        continue;
                     if (!is_redundant(v))
                         add_inequality(move(v));
                 }
@@ -343,10 +339,6 @@ namespace fm
     {
         Vector r;
         r.values = scaled_addition(v0.values, s0, v1.values, s1);
-        r.comb = v0.comb;
-        for (auto&& x : v1.comb) {
-            r.comb.insert(x);
-        }
         return r;
     }
 
