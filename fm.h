@@ -126,6 +126,11 @@ namespace fm
                            const Vector& v1, Value s1);
     ValArray scaled_addition(const ValArray& v0, Value s0,
                              const ValArray& v1, Value s1);
+
+    size_t num_elemental_inequalities(size_t num_vars);
+    fm::System elemental_inequalities(size_t num_vars);
+    void set_initial_state_iid(fm::System& s, size_t width);
+    void add_causal_constraints(fm::System& s, size_t width);
 }
 
 #endif  // include guard
