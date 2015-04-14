@@ -197,10 +197,11 @@ namespace fm
         }
 
         std::cout
-            << "eliminate: " << index
-            << ", ineqs: " << _ineqs.size()
+            << "cols: " << num_cols
+            << ", ineqs: " << ineqs.size()
             << ", eqs: " << _eqns.size()
-            << ", candidates: " << pos.size()*neg.size()
+            << ", p*n: " << pos.size()*neg.size()
+            << ", p+n: " << pos.size()+neg.size()
             << std::endl;
 
         std::vector<Vector> eq_with;
