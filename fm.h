@@ -75,7 +75,7 @@ namespace fm
         void solve_to(int to);
 
         Problem problem() const;
-        void eliminate(int i, int& s);
+        void eliminate(int i);
 
         friend std::ostream& operator << (std::ostream&, const System&);
     };

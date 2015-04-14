@@ -129,8 +129,6 @@ namespace fm
 
     void System::solve_to(int to)
     {
-        int step_count = 0;
-
         while (num_cols > to) {
             int best_index = to;
             int best_rank = get_rank(to);
@@ -141,7 +139,7 @@ namespace fm
                     best_rank = rank;
                 }
             }
-            eliminate(best_index, step_count);
+            eliminate(best_index);
         }
 
     }
@@ -174,7 +172,7 @@ namespace fm
         return p;
     }
 
-    void System::eliminate(int index, int& step_counter)
+    void System::eliminate(int index)
     {
         --num_cols;
         std::vector<Vector> _ineqs = move(ineqs);
@@ -232,8 +230,6 @@ namespace fm
             }
         }
         else {
-            int step = step_counter++;
-
             Problem prob = problem();
 
             for (auto&& p : pos) {
