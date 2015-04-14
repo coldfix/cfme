@@ -30,7 +30,7 @@ namespace fm
         glp_set_obj_dir(prob.get(), GLP_MIN);
         glp_add_cols(prob.get(), num_cols-1);
         for (int j = 1; j < num_cols; ++j) {
-            glp_set_col_bnds(prob.get(), j, GLP_LO, 0.0, NAN);
+            glp_set_col_bnds(prob.get(), j, GLP_FR, NAN, NAN);
         }
     }
 
