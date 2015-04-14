@@ -216,6 +216,9 @@ namespace fm
             }
         }
 
+        std::vector<Vector> cand;
+        cand.reserve(pos.size()*neg.size());
+
         if (!eq_with.empty()) {
             // TODO: heuristic for choosing equation?
             Vector eq = move(eq_with.back());
@@ -231,16 +234,19 @@ namespace fm
             }
         }
         else {
-            Problem prob = problem();
-
             for (auto&& p : pos) {
                 for (auto&& n : neg) {
-                    Vector v = p.eliminate(n, index);
-                    if (!prob.is_redundant(v)) {
-                        prob.add_inequality(v);
-                        add_inequality(move(v));
-                    }
+                    cand.push_back(p.eliminate(n, index));
                 }
+            }
+        }
+
+        Problem p = problem();
+
+        for (auto&& vec : cand) {
+            if (!p.is_redundant(vec)) {
+                p.add_inequality(vec);
+                add_inequality(move(vec));
             }
         }
     }
@@ -337,7 +343,7 @@ namespace fm
         return r;
     }
 
-    // friends
+    // friends & co
 
     Vector scaled_addition(const Vector& v0, Value s0,
                            const Vector& v1, Value s1)
