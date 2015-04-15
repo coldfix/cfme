@@ -89,6 +89,35 @@ namespace fm
         return glp_get_status(prob.get()) == GLP_OPT;
     }
 
+    bool Problem::dual(const Vector& v, std::vector<double>& r) const
+    {
+        assert(v.size() == num_cols);
+        glp_prob* lp = prob.get();
+        for (int i = 1; i < num_cols; ++i) {
+            glp_set_obj_coef(lp, i, v.get(i));
+        }
+        glp_std_basis(lp);
+        glp_smcp parm;
+        glp_init_smcp(&parm);
+        parm.msg_lev = GLP_MSG_ERR;
+        parm.meth = GLP_DUAL;
+        int result = glp_simplex(lp, &parm);
+        if (result != 0) {
+            return false;       // TODO: ERROR, raise exception?
+        }
+        int status = glp_get_dual_stat(lp);
+        if (status != GLP_FEAS) {
+            return false;
+        }
+        int rows = glp_get_num_cols(lp);
+        r.clear();
+        r.resize(rows);
+        for (int i = 0; i < rows; ++i) {
+            r[i] = glp_get_row_dual(lp, i+1);
+        }
+        return true;
+    }
+
     // class System
 
     System::System(size_t nb_lines, size_t nb_cols)

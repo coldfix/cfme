@@ -56,6 +56,7 @@ namespace fm
         void add_inequality(const Vector&);
 
         bool is_redundant(const Vector&) const;
+        bool dual(const Vector&, std::vector<double>&) const;
     };
 
 
