@@ -1,17 +1,22 @@
 // Thin C++ wrapper classes around the API of the FM library.
 
 
+#include <algorithm>    // copy
 #include <cassert>
 #include <cmath>
+#include <iterator>     // istream_iterator, back_inserter
 #include <utility>      // move
 
 #include <glpk.h>
 
 #include "number.h"
 #include "fm.h"
+#include "error.h"
 
 
 using std::move;
+using std::string;
+using std::vector;
 
 
 namespace fm
@@ -175,13 +180,13 @@ namespace fm
     void System::eliminate(int index)
     {
         --num_cols;
-        std::vector<Vector> _ineqs = move(ineqs);
-        std::vector<Vector> _eqns = move(eqns);
+        Matrix _ineqs = move(ineqs);
+        Matrix _eqns = move(eqns);
         clear(_ineqs.size());
 
         // Partition inequality constraints into (positive, negative, zero)
         // coefficient for the given index.
-        std::vector<Vector> pos, neg;
+        Matrix pos, neg;
         for (auto&& vec : _ineqs) {
             Value val = vec.get(index);
             if (val > 0) {
@@ -204,7 +209,7 @@ namespace fm
             << ", p+n: " << pos.size()+neg.size()
             << std::endl;
 
-        std::vector<Vector> eq_with;
+        Matrix eq_with;
         eq_with.reserve(_eqns.size());
         for (auto&& vec : _eqns) {
             if (vec.get(index)) {
@@ -216,7 +221,7 @@ namespace fm
             }
         }
 
-        std::vector<Vector> cand;
+        Matrix cand;
         cand.reserve(pos.size()*neg.size());
 
         if (!eq_with.empty()) {
@@ -503,6 +508,101 @@ void add_causal_constraints(System& s, size_t width)
         v.set(all, -1);
         s.add_equality(move(v));
     }
+}
+
+
+//----------------------------------------
+// matrix "methods"
+//----------------------------------------
+
+int get_num_cols(const Matrix& matrix)
+{
+    if (matrix.empty())
+        return -1;
+    int size = matrix[0].size();
+    for (auto&& v : matrix) {
+        _assert<matrix_size_error>(v.size() == size,
+                "size does not match", v.copy());
+    }
+    return size;
+}
+
+int get_num_vars(const Matrix& matrix)
+{
+    int size = get_num_cols(matrix);
+    if (size == -1)
+        return -1;
+    _assert<matrix_size_error>(is_power_of_2(size),
+            "size must be power of 2", size);
+    return intlog2(size);
+}
+
+Matrix copy_matrix(const Matrix& m)
+{
+    Matrix r;
+    for (auto&& v : m)
+        r.push_back(v.copy());
+    return r;
+}
+
+Problem problem(const Matrix& m, int num_vars)
+{
+    fm::System sys = fm::elemental_inequalities(num_vars);
+    fm::Problem lp = sys.problem();
+    for (auto&& v : m)
+        lp.add_inequality(v.copy());
+    return lp;
+}
+
+// greedy minimization
+Matrix minimize_system(const Matrix& sys)
+{
+    int num_vars = get_num_vars(sys);
+    Matrix r = copy_matrix(sys);
+    for (int i = r.size()-1; i > 0; --i) {
+        Vector v = move(r[i]);
+        r.erase(r.begin() + i);
+        Problem lp = problem(r, num_vars);
+        if (!lp.is_redundant(v))
+            r.insert(r.begin() + i, move(v));
+    }
+    return r;
+}
+
+string trim(string s)
+{
+    int beg = s.find_first_not_of(" \t");
+    int end = s.find_last_not_of(" \t");
+    if (beg == -1)
+        return string();
+    return s.substr(beg, end-beg+1);
+}
+
+Vector parse_vector(string line)
+{
+    typedef std::istream_iterator<int> iit;
+    _assert<matrix_parse_error>(line.front() == '[', "expecting '['", line);
+    _assert<matrix_parse_error>(line.back() == ']', "expecting ']'", line);
+    line = trim(line.substr(1, line.size()-2));
+    std::istringstream in(line);
+    vector<int> vals;
+    copy(iit(in), iit(), std::back_inserter(vals));
+    Vector r(vals.size());
+    copy(vals.begin(), vals.end(), begin(r.values));
+    return r;
+}
+
+Matrix parse_matrix(const vector<string>& lines)
+{
+    Matrix r;
+    for (string line : lines) {
+        line = trim(line);
+        if (line.empty())
+            continue;
+        r.push_back(parse_vector(line));
+    }
+    get_num_cols(r);
+    return r;
 }
 
 

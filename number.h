@@ -55,4 +55,24 @@ Int gcd(Int a, Int b)
     return a;
 }
 
+
+// https://graphics.stanford.edu/~seander/bithacks.html#DetermineIfPowerOf2
+template <class Int>
+bool is_power_of_2(Int num)
+{
+    return num && !(num & (num - 1));
+}
+
+
+template <class Int>
+Int intlog2(Int num)
+{
+    Int r = 0;
+    while (num >>= 1) {
+        ++r;
+    }
+    return r;
+}
+
+
 #endif  // include guard

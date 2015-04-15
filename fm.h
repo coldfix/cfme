@@ -6,6 +6,7 @@
 
 # include <iostream>
 # include <memory>
+# include <stdexcept>
 # include <valarray>
 # include <vector>
 
@@ -17,12 +18,26 @@ namespace fm
 {
     class System;
     class Vector;
+    typedef std::vector<Vector> Matrix;
 
     typedef long Value;
     typedef std::valarray<Value> ValArray;
 
     template <class T>
         using P = std::shared_ptr<T>;
+
+
+    class matrix_parse_error : public std::runtime_error
+    {
+    public:
+        using runtime_error::runtime_error;
+    };
+
+    class matrix_size_error : public std::runtime_error
+    {
+    public:
+        using runtime_error::runtime_error;
+    };
 
 
     // Minimization problem
@@ -51,8 +66,8 @@ namespace fm
 
         int get_rank(int) const;
     public:
-        std::vector<Vector> ineqs;
-        std::vector<Vector> eqns;
+        Matrix ineqs;
+        Matrix eqns;
         size_t num_cols;
 
         explicit System(size_t nb_lines, size_t nb_cols);
@@ -131,6 +146,15 @@ namespace fm
     fm::System elemental_inequalities(size_t num_vars);
     void set_initial_state_iid(fm::System& s, size_t width);
     void add_causal_constraints(fm::System& s, size_t width);
+
+    int get_num_cols(const Matrix& matrix);
+    int get_num_vars(const Matrix& matrix);
+    Matrix copy_matrix(const Matrix& m);
+    Problem problem(const Matrix& m, int num_vars);
+    Matrix minimize_system(const Matrix& sys);
+
+    fm::Vector parse_vector(std::string line);
+    Matrix parse_matrix(const std::vector<std::string>& lines);
 }
 
 #endif  // include guard
