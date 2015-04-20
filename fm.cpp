@@ -233,6 +233,7 @@ namespace fm
         std::cout
             << "cols: " << num_cols
             << ", ineqs: " << ineqs.size()
+            << "/" << _ineqs.size()
             << ", eqs: " << _eqns.size()
             << ", p*n: " << pos.size()*neg.size()
             << ", p+n: " << pos.size()+neg.size()
@@ -277,10 +278,17 @@ namespace fm
 
         Problem p = problem();
 
+        int done = 0;
         for (auto&& vec : cand) {
             if (!p.is_redundant(vec)) {
                 p.add_inequality(vec);
                 add_inequality(move(vec));
+            }
+            if (++done % 200 == 0) {
+                std::cout
+                    << "   done: " << done
+                    << ", ineqs: " << ineqs.size()
+                    << std::endl;
             }
         }
     }
