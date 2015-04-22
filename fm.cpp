@@ -504,17 +504,17 @@ System elemental_inequalities(size_t num_vars)
 // with `num_vars=2*width` variables.
 void set_initial_state_iid(System& s, size_t width)
 {
+    if (width <= 1)
+        return;
     size_t dim = 1<<(2*width);
     size_t layer1 = ((1<<width) - 1) << width;
+    Vector v(dim);
+    v.set(layer1, -1);
     for (size_t cell = 0; cell < width; ++cell) {
         size_t var = 1 << (width + cell);
-        size_t other = layer1 ^ var;
-        Vector v(dim);
         v.set(var, 1);
-        v.set(other, 1);
-        v.set(layer1, -1);
-        s.add_equality(move(v));
     }
+    s.add_equality(move(v));
 }
 
 
