@@ -54,6 +54,7 @@ namespace fm
 
         void add_equality(const Vector&);
         void add_inequality(const Vector&);
+        void del_row(int i);
 
         bool is_redundant(const Vector&) const;
         bool dual(const Vector&, std::vector<double>&) const;
@@ -92,6 +93,7 @@ namespace fm
 
         Problem problem() const;
         void eliminate(int i);
+        void minimize();
 
         friend std::ostream& operator << (std::ostream&, const System&);
     };

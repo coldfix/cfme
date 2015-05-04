@@ -1,4 +1,4 @@
-CFLAGS=-I$(FM)/include -std=c++11
+CFLAGS=-I$(FM)/include -std=c++11 -O3
 LFLAGS=-L$(FM)/lib -lglpk
 
 

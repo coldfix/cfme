@@ -72,6 +72,11 @@ namespace fm
         set_mat_row(i, v);
     }
 
+    void Problem::del_row(int i)
+    {
+        glp_del_rows(prob.get(), 1, (&i)-1);
+    }
+
     bool Problem::is_redundant(const Vector& v) const
     {
         assert(v.size() == num_cols);
@@ -175,7 +180,6 @@ namespace fm
             }
             eliminate(best_index);
         }
-
     }
 
     int System::get_rank(int index) const
@@ -208,6 +212,8 @@ namespace fm
 
     void System::eliminate(int index)
     {
+        int num_orig_ineqs = ineqs.size();
+
         --num_cols;
         Matrix _ineqs = move(ineqs);
         Matrix _eqns = move(eqns);
@@ -291,8 +297,29 @@ namespace fm
                     << std::endl;
             }
         }
+
+        if (ineqs.size() > num_orig_ineqs + 10) {
+            minimize();
+        }
     }
 
+    void System::minimize()
+    {
+        int maxelim = 0;
+        int offs = eqns.size();
+        std::cout << "  minimize: " << ineqs.size() << " .. " << std::flush;
+        Problem lp = problem();
+        for (int i = ineqs.size()-1; i >= maxelim; --i) {
+            lp.del_row(offs+i+1);
+            if (lp.is_redundant(ineqs[i])) {
+                ineqs.erase(ineqs.begin() + i);
+            }
+            else {
+                lp.add_inequality(ineqs[i]);
+            }
+        }
+        std::cout << ineqs.size() << std::endl;
+    }
 
     // class Vector
 

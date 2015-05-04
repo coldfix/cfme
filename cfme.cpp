@@ -31,7 +31,9 @@ bool solve(size_t width)
         fm::Problem orig_lp = system.problem();
 
         cout << "Eliminate layer " << layer << endl;
+        system.minimize();
         system.solve_to(solve_to);
+        system.minimize();
         cout << endl;
 
         cout << "Reduced to "
