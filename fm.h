@@ -89,7 +89,7 @@ namespace fm
         void add_inequality(Vector&& v);
         void add_equality(Vector&& v);
 
-        void solve_to(int to);
+        void solve_to(int to, int* recorded_order=nullptr);
 
         Problem problem() const;
         void eliminate(int i);

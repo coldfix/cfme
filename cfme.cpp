@@ -3,6 +3,7 @@
 
 #include <cstdlib>          // atol
 #include <cstddef>
+#include <iomanip>          // setw
 
 #include "fm.h"
 
@@ -18,6 +19,8 @@ bool solve(size_t width)
     size_t num_vars = width*2;
     size_t solve_to = 1<<width;
 
+    std::vector<int> recorded_order((1<<num_vars) - solve_to);
+
     cout << "Initialize CCA with N=" << width << endl;
     fm::System system = fm::elemental_inequalities(num_vars);
     fm::set_initial_state_iid(system, width);
@@ -32,7 +35,7 @@ bool solve(size_t width)
 
         cout << "Eliminate layer " << layer << endl;
         system.minimize();
-        system.solve_to(solve_to);
+        system.solve_to(solve_to, recorded_order.data());
         system.minimize();
         cout << endl;
 
@@ -94,6 +97,15 @@ bool solve(size_t width)
             cout << " - None." << endl;
         }
         cout << endl;
+
+        cout << "Order of elimination:";
+        for (int i = 0; i < recorded_order.size(); ++i) {
+            if (i % 10 == 0) {
+                cout << "\n   ";
+            }
+            cout << ' ' << std::setw(3) << recorded_order[i];
+        }
+        cout << "\n" << endl;
 
         // only trivial inequalities -> return:
         if (extra_ineqs.empty() && extra_eqns.empty()) {

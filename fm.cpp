@@ -166,9 +166,9 @@ namespace fm
         ineqs.push_back(move(vec));
     }
 
-    void System::solve_to(int to)
+    void System::solve_to(int to, int* recorded_order)
     {
-        while (num_cols > to) {
+        for (int step = 0; num_cols > to; ++step) {
             int best_index = to;
             int best_rank = get_rank(to);
             for (int i = to+1; i < num_cols; ++i) {
@@ -179,6 +179,9 @@ namespace fm
                 }
             }
             eliminate(best_index);
+            if (recorded_order) {
+                recorded_order[step] = best_index;
+            }
         }
     }
 
