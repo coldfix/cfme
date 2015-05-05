@@ -4,6 +4,7 @@
 #include <algorithm>    // copy
 #include <cassert>
 #include <cmath>
+#include <iomanip>      // setw
 #include <iterator>     // istream_iterator, back_inserter
 #include <utility>      // move
 
@@ -444,7 +445,7 @@ namespace fm
     {
         o << "[ ";
         for (auto val : v.values) {
-            o << val << ' ';
+            o << std::setw(3) << val << ' ';
         }
         o << "]";
         return o;
