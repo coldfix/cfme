@@ -645,6 +645,14 @@ string trim(string s)
     return s.substr(beg, end-beg+1);
 }
 
+string remove_comment(string s)
+{
+    int beg = s.find('#');
+    if (beg == -1)
+        return s;
+    return s.substr(0, beg);
+}
+
 Vector parse_vector(string line)
 {
     typedef std::istream_iterator<int> iit;
@@ -663,6 +671,7 @@ Matrix parse_matrix(const vector<string>& lines)
 {
     Matrix r;
     for (string line : lines) {
+        line = remove_comment(line);
         line = trim(line);
         if (line.empty())
             continue;
