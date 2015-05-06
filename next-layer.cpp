@@ -38,6 +38,7 @@ try
 
     cout << gen.str() << endl;
     cout << system << endl;
+    return 0;
 }
 catch (...)
 {
