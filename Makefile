@@ -1,5 +1,5 @@
-CFLAGS=-I$(FM)/include -std=c++11 -O3
-LFLAGS=-L$(FM)/lib -lglpk
+CFLAGS=-std=c++11 -O3
+LFLAGS=-lglpk
 
 
 all: bin/redundancy bin/cfme

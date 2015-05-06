@@ -1,4 +1,5 @@
-// Thin C++ wrapper classes around the API of the FM library.
+// Basic Fourier-Motzkin C++ API (eliminates variables from a system of
+// inequalities).
 
 
 #include <algorithm>    // copy
