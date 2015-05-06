@@ -5,10 +5,7 @@ LFLAGS=-lglpk
 all: bin/redundancy bin/cfme
 
 
-bin/redundancy: redundancy.o fm.o
-	g++ $(LFLAGS) $^ -o $@
-
-bin/cfme: cfme.o fm.o
+bin/%: %.o fm.o
 	g++ $(LFLAGS) $^ -o $@
 
 %.o: %.cpp
