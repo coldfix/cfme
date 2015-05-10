@@ -2,7 +2,7 @@ CFLAGS=-std=c++11 -O3
 LFLAGS=-lglpk -lboost_system -lboost_timer
 
 
-all: bin/redundancy bin/init-cca bin/eliminate
+all: bin/redundancy bin/init-cca bin/eliminate bin/next-layer
 
 
 bin/%: %.o fm.o util.o

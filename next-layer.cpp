@@ -1,7 +1,7 @@
 // - initialize a system of 2*W random variables with elemental inequalities
 // - treat this system as a two layered periodic CCA of width W and add the
 //   corresponding causal constraints
-// - set the first layer to be mutual independent
+// - read from STDIN additional constraints for the first layer
 // - minimize the system of inequalites
 // - print all vectors to STDOUT
 
@@ -28,8 +28,12 @@ try
     util::AutogenNotice gen(argc, argv);
 
     fm::System system = fm::elemental_inequalities(num_vars);
-    fm::set_initial_state_iid(system, width);
     fm::add_causal_constraints(system, width);
+
+    for (auto&& constraint : fm::parse_matrix(util::read_file(cin))) {
+        system.add_inequality(constraint.injection(system.num_cols, width));
+    }
+
     system.minimize();
 
     cout << gen.str() << endl;
@@ -39,3 +43,4 @@ catch (...)
 {
     throw;
 }
+
