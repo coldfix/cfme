@@ -1,6 +1,7 @@
 #include <ctime>
 #include <cstdio>           // FILE, popen, feof, fgets
 #include <sstream>
+#include <fstream>
 #include "util.h"
 
 
@@ -70,6 +71,16 @@ string util::join(const std::vector<string>& v, const string& sep)
     return result;
 }
 
+
+std::vector<string> util::read_file(const string& filename)
+{
+    std::vector<string> lines;
+    string line;
+    std::ifstream in(filename);
+    while (std::getline(in, line))
+        lines.push_back(line);
+    return lines;
+}
 
 util::AutogenNotice::AutogenNotice(int _argc, char** _argv)
     : argv(_argv, _argv + _argc)
