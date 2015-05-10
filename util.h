@@ -13,6 +13,7 @@
 
 namespace terminal
 {
+    void cursor_up(std::ostream&, int num_lines=1);
     void clear_current_line(std::ostream& out);
 }
 

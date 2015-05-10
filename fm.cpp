@@ -20,6 +20,9 @@
 using std::move;
 using std::string;
 using std::vector;
+using std::cerr;
+using std::endl;
+using std::setw;
 
 
 namespace fm
@@ -169,6 +172,8 @@ namespace fm
 
     void System::solve_to(int to, int* recorded_order)
     {
+        int num_orig = num_cols;
+        cerr << "Eliminate: " << num_orig << " -> " << to << endl;
         for (int step = 0; num_cols > to; ++step) {
             int best_index = to;
             int best_rank = get_rank(to);
@@ -179,11 +184,19 @@ namespace fm
                     best_rank = rank;
                 }
             }
+            cerr
+                << "   num_cols = " << setw(3) << num_cols
+                << ",  on index = " << setw(3) << best_index
+                << ",  num_ineqs = " << ineqs.size()
+                << endl;
             eliminate(best_index);
             if (recorded_order) {
                 recorded_order[step] = best_index;
             }
+            terminal::cursor_up(cerr);
+            terminal::clear_current_line(cerr);
         }
+        cerr << endl;
     }
 
     int System::get_rank(int index) const
@@ -204,11 +217,11 @@ namespace fm
 
     Problem System::problem() const
     {
-        Problem p(num_cols);
+        Problem lp(num_cols);
         for (auto&& vec : ineqs) {
-            p.add_inequality(vec);
+            lp.add_inequality(vec);
         }
-        return p;
+        return lp;
     }
 
     void System::eliminate(int index)
@@ -236,14 +249,6 @@ namespace fm
             }
         }
 
-        std::cout
-            << "cols: " << num_cols
-            << ", ineqs: " << ineqs.size()
-            << "/" << _ineqs.size()
-            << ", p*n: " << pos.size()*neg.size()
-            << ", p+n: " << pos.size()+neg.size()
-            << std::endl;
-
         Matrix cand;
         cand.reserve(pos.size()*neg.size());
 
@@ -253,31 +258,32 @@ namespace fm
             }
         }
 
-        Problem p = problem();
+        Problem lp = problem();
 
-        int done = 0;
-        for (auto&& vec : cand) {
-            if (!p.is_redundant(vec)) {
-                p.add_inequality(vec);
+        terminal::clear_current_line(cerr);
+        cerr
+            << "   p*n = " << setw(4) << pos.size()*neg.size()
+            << ",  p+n = " << setw(3) << pos.size()+neg.size()
+            << std::flush;
+        for (int i = 0; i < cand.size(); ++i) {
+            Vector& vec = cand[i];
+            if (!lp.is_redundant(vec)) {
+                lp.add_inequality(vec);
                 add_inequality(move(vec));
             }
-            if (++done % 200 == 0) {
-                std::cout
-                    << "   done: " << done
-                    << ", ineqs: " << ineqs.size()
-                    << std::endl;
-            }
         }
-
+        cerr << endl;
         if (ineqs.size() > num_orig_ineqs + 10) {
             minimize();
+            terminal::cursor_up(cerr);
+            terminal::clear_current_line(cerr);
         }
+        terminal::cursor_up(cerr);
+        terminal::clear_current_line(cerr);
     }
 
     void System::minimize()
     {
-        using std::cerr;
-        using std::endl;
         size_t num_orig = ineqs.size();
         fm::Problem lp = problem();
         for (int i = ineqs.size()-1; i >= 0; --i) {
@@ -420,7 +426,7 @@ namespace fm
     {
         o << "[ ";
         for (auto val : v.values) {
-            o << std::setw(3) << val << ' ';
+            o << setw(3) << val << ' ';
         }
         o << "]";
         return o;

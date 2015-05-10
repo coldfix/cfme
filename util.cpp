@@ -53,6 +53,12 @@ string git::commit_info()
 }
 
 
+void terminal::cursor_up(std::ostream& out, int num_lines)
+{
+    out << "\033[" << num_lines << "A" << std::flush;
+}
+
+
 void terminal::clear_current_line(std::ostream& out)
 {
     out << "\r\033[K" << std::flush;
