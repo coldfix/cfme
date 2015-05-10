@@ -71,15 +71,19 @@ string util::join(const std::vector<string>& v, const string& sep)
     return result;
 }
 
-
-std::vector<string> util::read_file(const string& filename)
+std::vector<std::string> util::read_file(std::istream& in)
 {
     std::vector<string> lines;
     string line;
-    std::ifstream in(filename);
     while (std::getline(in, line))
         lines.push_back(line);
     return lines;
+}
+
+std::vector<string> util::read_file(const string& filename)
+{
+    std::ifstream in(filename);
+    return read_file(in);
 }
 
 util::AutogenNotice::AutogenNotice(int _argc, char** _argv)

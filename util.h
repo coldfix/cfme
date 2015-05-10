@@ -2,7 +2,7 @@
 #define __UTIL_H__INCLUDED__
 
 # include <ctime>       // time_t
-# include <ostream>
+# include <iostream>
 # include <sstream>
 # include <string>
 # include <utility>     // move
@@ -35,6 +35,7 @@ namespace util
 
     std::string join(const std::vector<std::string>&, const std::string& sep);
 
+    std::vector<std::string> read_file(std::istream&);
     std::vector<std::string> read_file(const std::string& filename);
 
 
