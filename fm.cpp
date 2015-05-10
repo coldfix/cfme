@@ -14,6 +14,7 @@
 #include "number.h"
 #include "fm.h"
 #include "error.h"
+#include "util.h"
 
 
 using std::move;
@@ -275,10 +276,11 @@ namespace fm
 
     void System::minimize()
     {
-        int maxelim = 0;
-        std::cout << "  minimize: " << ineqs.size() << " .. " << std::flush;
-        Problem lp = problem();
-        for (int i = ineqs.size()-1; i >= maxelim; --i) {
+        using std::cerr;
+        using std::endl;
+        size_t num_orig = ineqs.size();
+        fm::Problem lp = problem();
+        for (int i = ineqs.size()-1; i >= 0; --i) {
             lp.del_row(i+1);
             if (lp.is_redundant(ineqs[i])) {
                 ineqs.erase(ineqs.begin() + i);
@@ -286,8 +288,16 @@ namespace fm
             else {
                 lp.add_inequality(ineqs[i]);
             }
+
+            terminal::clear_current_line(cerr);
+            cerr << "Minimizing: " << num_orig << " -> " << ineqs.size()
+                << "  (i=" << i << ")"
+                << std::flush;
         }
-        std::cout << ineqs.size() << std::endl;
+        terminal::clear_current_line(cerr);
+        cerr << "Minimizing: " << num_orig << " -> " << ineqs.size()
+            << " (DONE)"
+            << endl;
     }
 
     // class Vector

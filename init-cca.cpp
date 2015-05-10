@@ -28,28 +28,7 @@ try
     fm::System system = fm::elemental_inequalities(num_vars);
     fm::set_initial_state_iid(system, width);
     fm::add_causal_constraints(system, width);
-    fm::Matrix& ineqs = system.ineqs;
-    size_t num_orig = ineqs.size();
-
-    fm::Problem lp = system.problem();
-    for (int i = ineqs.size()-1; i >= 0; --i) {
-        lp.del_row(i+1);
-        if (lp.is_redundant(ineqs[i])) {
-            ineqs.erase(ineqs.begin() + i);
-        }
-        else {
-            lp.add_inequality(ineqs[i]);
-        }
-
-        terminal::clear_current_line(cerr);
-        cerr << "Minimizing: " << num_orig << " -> " << ineqs.size()
-            << "  (i=" << i << ")"
-            << flush;
-    }
-    terminal::clear_current_line(cerr);
-    cerr << "Minimizing: " << num_orig << " -> " << ineqs.size()
-        << " (DONE)"
-        << endl;
+    system.minimize();
 
     cout << gen.str() << endl;
     cout << system << endl;
