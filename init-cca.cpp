@@ -16,7 +16,7 @@ int main(int argc, char** argv, char** env)
 try
 {
     if (argc != 2 && argc != 3) {
-        cout << "Usage: " << argv[0] << " WIDTH [NUM_LINKS]" << endl;
+        cerr << "Usage: " << argv[0] << " WIDTH [NUM_LINKS]" << endl;
         return 1;
     }
     size_t width = atol(argv[1]);
