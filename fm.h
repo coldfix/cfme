@@ -69,7 +69,6 @@ namespace fm
         int get_rank(int) const;
     public:
         Matrix ineqs;
-        Matrix eqns;
         size_t num_cols;
 
         explicit System(size_t nb_lines, size_t nb_cols);

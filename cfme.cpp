@@ -41,7 +41,6 @@ bool solve(size_t width)
 
         cout << "Reduced to "
             << system.ineqs.size() << " inequalities and "
-            << system.eqns.size() << " equalities.\n"
             << "Expecting " << fm::num_elemental_inequalities(width)
             << " elemental inequalities.\n"
             << endl;
@@ -75,7 +74,6 @@ bool solve(size_t width)
 
         // enumerate non-trivial constraints
         std::vector<fm::Vector> extra_ineqs;
-        std::vector<fm::Vector> extra_eqns;
         cout << "List non-trivial inequalities: " << endl;
         fm::Problem tgt_prob = target.problem();
         for (auto&& v : system.ineqs) {
@@ -86,14 +84,6 @@ bool solve(size_t width)
             cout << v << endl;
         }
         if (extra_ineqs.empty()) {
-            cout << " - None." << endl;
-        }
-        cout << endl;
-        cout << "List equalities: " << endl;
-        for (auto&& v : system.eqns) {
-            extra_eqns.push_back(v.copy());
-        }
-        if (extra_eqns.empty()) {
             cout << " - None." << endl;
         }
         cout << endl;
@@ -108,7 +98,7 @@ bool solve(size_t width)
         cout << "\n" << endl;
 
         // only trivial inequalities -> return:
-        if (extra_ineqs.empty() && extra_eqns.empty()) {
+        if (extra_ineqs.empty()) {
             break;
         }
 
@@ -117,9 +107,6 @@ bool solve(size_t width)
         fm::add_causal_constraints(system, width);
         for (auto&& v : extra_ineqs) {
             system.add_inequality(v.injection(system.num_cols, width));
-        }
-        for (auto&& v : extra_eqns) {
-            system.add_equality(v.injection(system.num_cols, width));
         }
 
     }
