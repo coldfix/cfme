@@ -14,11 +14,15 @@
 #include "number.h"
 #include "fm.h"
 #include "error.h"
+#include "util.h"
 
 
 using std::move;
 using std::string;
 using std::vector;
+using std::cerr;
+using std::endl;
+using std::setw;
 
 
 namespace fm
@@ -139,16 +143,12 @@ namespace fm
         for (auto&& v : ineqs) {
             s.add_inequality(v.copy());
         }
-        for (auto&& v : eqns) {
-            s.add_equality(v.copy());
-        }
         return s;
     }
 
     void System::clear(size_t new_expected)
     {
         ineqs.clear();
-        eqns.clear();
         ineqs.reserve(new_expected);
     }
 
@@ -157,7 +157,9 @@ namespace fm
         assert(vec.size() == num_cols);
         if (vec.empty())
             return;
-        eqns.push_back(move(vec));
+        ineqs.push_back(vec.copy());
+        vec.values *= -1;
+        ineqs.push_back(move(vec));
     }
 
     void System::add_inequality(Vector&& vec)
@@ -170,6 +172,8 @@ namespace fm
 
     void System::solve_to(int to, int* recorded_order)
     {
+        int num_orig = num_cols;
+        cerr << "Eliminate: " << num_orig << " -> " << to << endl;
         for (int step = 0; num_cols > to; ++step) {
             int best_index = to;
             int best_rank = get_rank(to);
@@ -185,6 +189,7 @@ namespace fm
                 recorded_order[step] = best_index;
             }
         }
+        cerr << endl;
     }
 
     int System::get_rank(int index) const
@@ -205,14 +210,11 @@ namespace fm
 
     Problem System::problem() const
     {
-        Problem p(num_cols);
-        for (auto&& vec : eqns) {
-            p.add_equality(vec);
-        }
+        Problem lp(num_cols);
         for (auto&& vec : ineqs) {
-            p.add_inequality(vec);
+            lp.add_inequality(vec);
         }
-        return p;
+        return lp;
     }
 
     void System::eliminate(int index)
@@ -221,7 +223,6 @@ namespace fm
 
         --num_cols;
         Matrix _ineqs = move(ineqs);
-        Matrix _eqns = move(eqns);
         clear(_ineqs.size());
 
         // Partition inequality constraints into (positive, negative, zero)
@@ -241,89 +242,61 @@ namespace fm
             }
         }
 
-        std::cout
-            << "cols: " << num_cols
-            << ", ineqs: " << ineqs.size()
-            << "/" << _ineqs.size()
-            << ", eqs: " << _eqns.size()
-            << ", p*n: " << pos.size()*neg.size()
-            << ", p+n: " << pos.size()+neg.size()
-            << std::endl;
-
-        Matrix eq_with;
-        eq_with.reserve(_eqns.size());
-        for (auto&& vec : _eqns) {
-            if (vec.get(index)) {
-                eq_with.push_back(move(vec));
-            }
-            else {
-                vec.remove(index);
-                add_equality(move(vec));
-            }
-        }
-
         Matrix cand;
         cand.reserve(pos.size()*neg.size());
 
-        if (!eq_with.empty()) {
-            // TODO: heuristic for choosing equation?
-            Vector eq = move(eq_with.back());
-            eq_with.pop_back();
-            for (auto&& v : eq_with) {
-                add_equality(v.eliminate(eq, index));
-            }
-            for (auto&& v : pos) {
-                add_inequality(v.eliminate(eq, index));
-            }
-            for (auto&& v : neg) {
-                add_inequality(v.eliminate(eq, index));
-            }
-        }
-        else {
-            for (auto&& p : pos) {
-                for (auto&& n : neg) {
-                    cand.push_back(p.eliminate(n, index));
-                }
+        for (auto&& p : pos) {
+            for (auto&& n : neg) {
+                cand.push_back(p.eliminate(n, index));
             }
         }
 
-        Problem p = problem();
+        Problem lp = problem();
 
-        int done = 0;
-        for (auto&& vec : cand) {
-            if (!p.is_redundant(vec)) {
-                p.add_inequality(vec);
+        terminal::clear_current_line(cerr);
+        cerr
+            << "   i = " << setw(3) << num_cols
+            << ",  num_ineqs = " << setw(4) << ineqs.size()
+            << ",  p+n = " << setw(3) << pos.size()+neg.size()
+            << "   p*n = " << setw(4) << pos.size()*neg.size()
+            << std::flush;
+        for (int i = 0; i < cand.size(); ++i) {
+            Vector& vec = cand[i];
+            if (!lp.is_redundant(vec)) {
+                lp.add_inequality(vec);
                 add_inequality(move(vec));
             }
-            if (++done % 200 == 0) {
-                std::cout
-                    << "   done: " << done
-                    << ", ineqs: " << ineqs.size()
-                    << std::endl;
-            }
         }
-
+        cerr << endl;
         if (ineqs.size() > num_orig_ineqs + 10) {
             minimize();
+            terminal::cursor_up(cerr);
+            terminal::clear_current_line(cerr);
         }
     }
 
     void System::minimize()
     {
-        int maxelim = 0;
-        int offs = eqns.size();
-        std::cout << "  minimize: " << ineqs.size() << " .. " << std::flush;
-        Problem lp = problem();
-        for (int i = ineqs.size()-1; i >= maxelim; --i) {
-            lp.del_row(offs+i+1);
+        size_t num_orig = ineqs.size();
+        fm::Problem lp = problem();
+        for (int i = ineqs.size()-1; i >= 0; --i) {
+            lp.del_row(i+1);
             if (lp.is_redundant(ineqs[i])) {
                 ineqs.erase(ineqs.begin() + i);
             }
             else {
                 lp.add_inequality(ineqs[i]);
             }
+
+            terminal::clear_current_line(cerr);
+            cerr << "Minimizing: " << num_orig << " -> " << ineqs.size()
+                << "  (i=" << i << ")"
+                << std::flush;
         }
-        std::cout << ineqs.size() << std::endl;
+        terminal::clear_current_line(cerr);
+        cerr << "Minimizing: " << num_orig << " -> " << ineqs.size()
+            << " (DONE)"
+            << endl;
     }
 
     // class Vector
@@ -446,7 +419,7 @@ namespace fm
     {
         o << "[ ";
         for (auto val : v.values) {
-            o << std::setw(3) << val << ' ';
+            o << setw(3) << val << ' ';
         }
         o << "]";
         return o;

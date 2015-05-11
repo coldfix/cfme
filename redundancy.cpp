@@ -5,25 +5,11 @@
 #include <string>
 #include <vector>
 
+#include "util.h"
 #include "error.h"
 
 using namespace std;
 using fm::Matrix;
-
-
-//----------------------------------------
-// generic utilities
-//----------------------------------------
-
-vector<string> read_file(const string& filename)
-{
-    vector<string> lines;
-    string line;
-    ifstream in(filename);
-    while (getline(in, line))
-        lines.push_back(line);
-    return lines;
-}
 
 
 //----------------------------------------
@@ -83,7 +69,7 @@ try
 
     if (argc == 2) {
         std::string file = argv[1];
-        Matrix sys = fm::parse_matrix(read_file(file));
+        Matrix sys = fm::parse_matrix(util::read_file(file));
         sys = fm::minimize_system(sys);
         for (auto&& v : sys) {
             cout << v << endl;
@@ -93,8 +79,8 @@ try
     else if (argc == 3) {
         string file_a = argv[1];
         string file_b = argv[2];
-        Matrix sys_a = fm::parse_matrix(read_file(file_a));
-        Matrix sys_b = fm::parse_matrix(read_file(file_b));
+        Matrix sys_a = fm::parse_matrix(util::read_file(file_a));
+        Matrix sys_b = fm::parse_matrix(util::read_file(file_b));
         string label_a = "A";
         string label_b = "B";
         if (!check_implies(label_a, sys_a, label_b, sys_b)) {
