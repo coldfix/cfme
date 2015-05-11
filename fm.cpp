@@ -184,17 +184,10 @@ namespace fm
                     best_rank = rank;
                 }
             }
-            cerr
-                << "   num_cols = " << setw(3) << num_cols
-                << ",  on index = " << setw(3) << best_index
-                << ",  num_ineqs = " << ineqs.size()
-                << endl;
             eliminate(best_index);
             if (recorded_order) {
                 recorded_order[step] = best_index;
             }
-            terminal::cursor_up(cerr);
-            terminal::clear_current_line(cerr);
         }
         cerr << endl;
     }
@@ -262,8 +255,10 @@ namespace fm
 
         terminal::clear_current_line(cerr);
         cerr
-            << "   p*n = " << setw(4) << pos.size()*neg.size()
+            << "   i = " << setw(3) << num_cols
+            << ",  num_ineqs = " << setw(4) << ineqs.size()
             << ",  p+n = " << setw(3) << pos.size()+neg.size()
+            << "   p*n = " << setw(4) << pos.size()*neg.size()
             << std::flush;
         for (int i = 0; i < cand.size(); ++i) {
             Vector& vec = cand[i];
@@ -278,8 +273,6 @@ namespace fm
             terminal::cursor_up(cerr);
             terminal::clear_current_line(cerr);
         }
-        terminal::cursor_up(cerr);
-        terminal::clear_current_line(cerr);
     }
 
     void System::minimize()
