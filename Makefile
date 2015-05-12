@@ -2,7 +2,15 @@ CFLAGS=-std=c++11 -O3
 LFLAGS=-lglpk -lboost_system -lboost_timer
 
 
-all: bin/redundancy bin/init-cca bin/eliminate bin/next-layer
+BIN = \
+	  redundancy \
+	  init-cca \
+	  eliminate \
+	  next-layer \
+	  check_shift_invariance \
+
+
+all: $(addprefix bin/,$(BIN))
 
 
 bin/%: %.o fm.o util.o
