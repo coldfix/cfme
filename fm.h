@@ -137,6 +137,7 @@ namespace fm
         friend std::ostream& operator << (std::ostream&, const Vector&);
         friend Vector scaled_addition(const Vector& v0, Value s0,
                                       const Vector& v1, Value s1);
+        friend bool operator == (const Vector&, const Vector&);
     };
 
     Vector scaled_addition(const Vector& v0, Value s0,

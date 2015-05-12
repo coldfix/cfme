@@ -425,6 +425,16 @@ namespace fm
         return o;
     }
 
+    bool operator == (const Vector& a, const Vector& b)
+    {
+        assert(a.size() == b.size());
+        for (int i = 0; i < a.size(); ++i) {
+            if (a.get(i) != b.get(i)) {
+                return false;
+            }
+        }
+        return true;
+    }
 
 //----------------------------------------
 // stand-alone functions

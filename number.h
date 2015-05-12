@@ -14,6 +14,19 @@ Int skip_bit(Int pool, size_t bit_index)
     return left | right;
 }
 
+template <class Int>
+Int shifted(Int index, Int width, Int shift)
+{
+    Int mask0 = (1<<width)-1;
+    Int mask1 = mask0 << width;
+    Int shift0 = (index&mask0) << shift       & mask0
+               | (index&mask0) >> width-shift & mask0;
+    Int shift1 = (index&mask1) << shift       & mask1
+               | (index&mask1) >> width-shift & mask1;
+    return shift0 | shift1;
+}
+
+
 
 // binomial coefficient [n choose r]
 template <class Int>
