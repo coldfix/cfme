@@ -67,16 +67,7 @@ try
 {
     int error_level = 0;
 
-    if (argc == 2) {
-        std::string file = argv[1];
-        Matrix sys = fm::parse_matrix(util::read_file(file));
-        sys = fm::minimize_system(sys);
-        for (auto&& v : sys) {
-            cout << v << endl;
-        }
-    }
-
-    else if (argc == 3) {
+    if (argc == 3) {
         string file_a = argv[1];
         string file_b = argv[2];
         Matrix sys_a = fm::parse_matrix(util::read_file(file_a));
@@ -92,8 +83,8 @@ try
     }
 
     else {
-        cout << "Usage: check FILENAME [FILENAME]" << endl;
-        error_level = 1;
+        cout << "Usage: check FILENAME FILENAME" << endl;
+        error_level = 4;
     }
 
     return error_level;
