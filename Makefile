@@ -9,6 +9,7 @@ BIN = \
 	  next-layer \
 	  check_shift_invariance \
 	  diff-systems \
+	  minimize_system \
 
 
 all: $(addprefix bin/,$(BIN))

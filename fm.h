@@ -72,6 +72,7 @@ namespace fm
         size_t num_cols;
 
         explicit System(size_t nb_lines, size_t nb_cols);
+        System(Matrix);
 
         System(System&&) = default;
         System& operator = (System&&) = default;

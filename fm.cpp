@@ -137,6 +137,12 @@ namespace fm
         clear(nb_lines);
     }
 
+    System::System(Matrix matrix)
+    {
+        num_cols = get_num_cols(matrix);
+        ineqs = move(matrix);
+    }
+
     System System::copy() const
     {
         System s(ineqs.size(), num_cols);
