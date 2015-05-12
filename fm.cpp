@@ -280,6 +280,9 @@ namespace fm
         size_t num_orig = ineqs.size();
         fm::Problem lp = problem();
         for (int i = ineqs.size()-1; i >= 0; --i) {
+            cerr << "Minimizing: " << num_orig << " -> " << ineqs.size()
+                << "  (i=" << i << ")"
+                << std::flush;
             lp.del_row(i+1);
             if (lp.is_redundant(ineqs[i])) {
                 ineqs.erase(ineqs.begin() + i);
@@ -287,13 +290,8 @@ namespace fm
             else {
                 lp.add_inequality(ineqs[i]);
             }
-
             terminal::clear_current_line(cerr);
-            cerr << "Minimizing: " << num_orig << " -> " << ineqs.size()
-                << "  (i=" << i << ")"
-                << std::flush;
         }
-        terminal::clear_current_line(cerr);
         cerr << "Minimizing: " << num_orig << " -> " << ineqs.size()
             << " (DONE)"
             << endl;
