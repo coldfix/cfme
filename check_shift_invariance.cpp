@@ -11,6 +11,7 @@
 
 using namespace std;
 using fm::Matrix;
+using fm::System;
 
 
 fm::Vector shifted(const fm::Vector& vec, int width, int shift)
@@ -23,53 +24,44 @@ fm::Vector shifted(const fm::Vector& vec, int width, int shift)
 }
 
 
-bool check_shift_invariance(const Matrix& sys)
+bool check_shift_invariance(const fm::System& sys)
 {
-    int num_vars = get_num_vars(sys);
+    const fm::Matrix& mat = sys.ineqs;
+    int num_vars = get_num_vars(mat);
     int width = num_vars/2;
 
-    vector<bool> checked(sys.size());
+    fm::Problem lp = sys.problem();
 
     bool success = true;
-    for (int i = 0; i < sys.size(); ++i) {
-        if (checked[i]) {
-            continue;
-        }
-
+    for (int i = 0; i < mat.size(); ++i) {
         std::vector<int> missing_shifts;
 
         for (int shift = 1; shift < width; ++shift) {
-            fm::Vector vec = shifted(sys[i], width, shift);
+            fm::Vector vec = shifted(mat[i], width, shift);
 
-            if (vec == sys[i]) {
+            if (vec == mat[i]) {
                 continue;
             }
 
-            bool found = false;
-            for (int j = i+1; j < sys.size(); ++j) {
-                if (sys[j] == vec) {
-                    found = true;
-                    checked[j] = true;
-                    break;
-                }
-            }
-            if (!found) {
+            // The minimized system of inequalities turns out not to be
+            // unique. Any of the shifted variants of an inequality might be
+            // removed while still being valid. Therefore, it's insufficient
+            // to just search for the vector. An LP must be solved instead:
+            if (!lp.is_redundant(vec)) {
                 missing_shifts.push_back(shift);
                 success = false;
             }
             if (!missing_shifts.empty()) {
-                cerr << "For vector: " << sys[i] << "\n";
+                cerr << "For vector: " << mat[i] << "\n";
 
                 for (auto shift : missing_shifts) {
                     cerr << "  no shift: " 
-                        << shifted(sys[i], width, shift)
+                        << shifted(mat[i], width, shift)
                         << " (shift=" << shift << ")"
                         << endl;
                 }
             }
         }
-
-        checked[i] = true;
     }
     return success;
 }
@@ -82,7 +74,7 @@ try
 
     if (argc == 2) {
         string file = argv[1];
-        Matrix sys = fm::parse_matrix(util::read_file(file));
+        System sys = fm::parse_matrix(util::read_file(file));
         if (!check_shift_invariance(sys)) {
             error_level = 1;
         }
