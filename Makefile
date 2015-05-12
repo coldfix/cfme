@@ -8,6 +8,7 @@ BIN = \
 	  eliminate \
 	  next-layer \
 	  check_shift_invariance \
+	  diff-systems \
 
 
 all: $(addprefix bin/,$(BIN))
