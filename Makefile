@@ -3,7 +3,7 @@ LFLAGS=-lglpk -lboost_system -lboost_timer
 
 
 BIN = \
-	  redundancy \
+	  check_equivalence \
 	  init-cca \
 	  eliminate \
 	  next-layer \
