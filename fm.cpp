@@ -95,7 +95,7 @@ namespace fm
         parm.msg_lev = GLP_MSG_ERR;
         int result = glp_simplex(prob.get(), &parm);
         if (result != 0) {
-            return false;       // TODO: ERROR, raise exception?
+            throw std::runtime_error("Error in glp_simplex.");
         }
         return glp_get_status(prob.get()) == GLP_OPT;
     }
@@ -114,7 +114,7 @@ namespace fm
         parm.meth = GLP_DUAL;
         int result = glp_simplex(lp, &parm);
         if (result != 0) {
-            return false;       // TODO: ERROR, raise exception?
+            throw std::runtime_error("Error in glp_simplex.");
         }
         int status = glp_get_dual_stat(lp);
         if (status != GLP_FEAS) {
