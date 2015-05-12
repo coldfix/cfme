@@ -32,24 +32,15 @@ try
     }
 
     size_t solve_to = std::atol(argv[1]);
-
-    fm::Matrix matrix = fm::parse_matrix(util::read_file(std::cin));
-    if (matrix.empty()) {
-        cerr << "No inequalities!" << endl;
-        return 1;
-    }
-
-    size_t num_vars = matrix[0].size();
     size_t width = intlog2(solve_to);
 
-    fm::System system(1, num_vars);
-    system.ineqs = std::move(matrix);
+    fm::System system = fm::parse_matrix(util::read_file(std::cin));
 
     // make a copy that can be used later to verify that inequalities
     // are indeed implied (consistency check for FM algorithm):
     fm::Problem orig_lp = system.problem();
 
-    std::vector<int> recorded_order(num_vars - solve_to);
+    std::vector<int> recorded_order(system.num_cols - solve_to);
     system.solve_to(solve_to, recorded_order.data());
     system.minimize();
 
