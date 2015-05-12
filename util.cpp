@@ -26,30 +26,13 @@ string util::get_command_output(const string& command)
     return result;
 }
 
-string git::commit()
-{
-    return util::get_command_output("git rev-parse HEAD");
-}
-
-bool git::has_uncommitted_changes()
-{
-    string changes = util::get_command_output(
-            "git status --untracked-files=no --porcelain");
-    return !changes.empty();
-}
 
 string git::commit_info()
 {
-    try {
-        string info = git::commit();
-        if (git::has_uncommitted_changes())
-            info += " (uncommitted changes)";
-        return info;
-    }
-    catch (std::runtime_error& e)
-    {
-        return "(failed to get git commit)";
-    }
+    string info = git::commit;
+    if (git::has_uncommitted_changes)
+        info += " (uncommitted changes)";
+    return info;
 }
 
 

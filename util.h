@@ -66,8 +66,8 @@ namespace util
 
 namespace git
 {
-    std::string commit();
-    bool has_uncommitted_changes();
+    extern const char* commit;
+    extern bool has_uncommitted_changes;
     std::string commit_info();
 }
 
