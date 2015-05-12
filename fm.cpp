@@ -599,7 +599,7 @@ Matrix copy_matrix(const Matrix& m)
 
 Problem problem(const Matrix& m, int num_vars)
 {
-    fm::System sys = fm::elemental_inequalities(num_vars);
+    fm::System sys(m.size(), 1<<num_vars);
     fm::Problem lp = sys.problem();
     for (auto&& v : m)
         lp.add_inequality(v.copy());
