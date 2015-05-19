@@ -120,7 +120,7 @@ namespace fm
         if (status != GLP_FEAS) {
             return false;
         }
-        int rows = glp_get_num_cols(lp);
+        int rows = glp_get_num_rows(lp);
         r.clear();
         r.resize(rows);
         for (int i = 0; i < rows; ++i) {
