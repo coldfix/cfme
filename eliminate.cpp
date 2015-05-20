@@ -19,6 +19,27 @@
 using std::cout;
 using std::cerr;
 using std::endl;
+using std::vector;
+
+
+struct RecordOrder : fm::SolveToStatusOutput
+{
+    vector<int>* recorded_order;
+
+    typedef fm::SolveToStatusOutput super;
+
+    RecordOrder(const fm::IO& io, vector<int>* r)
+        : super(io)
+        , recorded_order(r)
+    {
+    }
+
+    fm::EliminatePtr start_eliminate(int index) const override
+    {
+        recorded_order->push_back(index);
+        return super::start_eliminate(index);
+    }
+};
 
 
 int main(int argc, char** argv, char** env)
@@ -34,15 +55,17 @@ try
     size_t solve_to = std::atol(argv[1]);
     size_t width = intlog2(solve_to);
 
+    fm::IO io(&cerr);
+
     fm::System system = fm::parse_matrix(util::read_file(std::cin));
 
     // make a copy that can be used later to verify that inequalities
     // are indeed implied (consistency check for FM algorithm):
     fm::Problem orig_lp = system.problem();
 
-    std::vector<int> recorded_order(system.num_cols - solve_to);
-    system.solve_to(solve_to, recorded_order.data());
-    system.minimize();
+    vector<int> recorded_order;
+    fm::solve_to{system, solve_to}.run(RecordOrder(io, &recorded_order));
+    fm::minimize{system}.run(fm::MinimizeStatusOutput(io));
 
     cerr << "Reduced to "
         << system.ineqs.size() << " inequalities and "

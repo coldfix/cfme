@@ -36,8 +36,8 @@ fm::Matrix random_elimination(fm::System system, int num_drop)
         matrix.erase(matrix.begin() + index);
     }
 
-    system.solve_to(solve_to);
-    system.minimize();
+    fm::solve_to{system, solve_to}.run();
+    fm::minimize{system}.run();
     return move(system.ineqs);
 }
 
@@ -79,7 +79,7 @@ struct Result
         for (auto&& v : m) {
             discovery.add_inequality(v.copy());
         }
-        discovery.minimize();
+        fm::minimize{discovery}.run();
 
         int num_nontriv = count_nontrivial(elemental, m);
         int num_missing = count_nontrivial(discovery, ref_solution.ineqs);
@@ -89,7 +89,7 @@ struct Result
         num_found.push_back(m.size());
         num_nontrivial.push_back(num_nontriv);
         missing_nontrivial.push_back(num_missing);
-        cout << "i=" << number_of_steps-1
+        cerr << "i=" << number_of_steps-1
             << ", found " << setw(2) << m.size()
             << ", total " << setw(2) << discovery.ineqs.size()
             << endl;
@@ -109,7 +109,7 @@ int main(int argc, char** argv, char** env)
 try
 {
     if (argc != 4) {
-        cout << "Usage: " << argv[0] << " NUM_DROP INITIAL REFERENCE" << endl;
+        cerr << "Usage: " << argv[0] << " NUM_DROP INITIAL REFERENCE" << endl;
         return 1;
     }
     util::AutogenNotice gen(argc, argv);

@@ -8,6 +8,7 @@
 #include <iomanip>      // setw
 #include <iterator>     // istream_iterator, back_inserter
 #include <utility>      // move
+#include <functional>   // bind
 
 #include <glpk.h>
 
@@ -20,9 +21,9 @@
 using std::move;
 using std::string;
 using std::vector;
-using std::cerr;
 using std::endl;
 using std::setw;
+using std::ostream;
 
 
 namespace fm
@@ -120,7 +121,7 @@ namespace fm
         if (status != GLP_FEAS) {
             return false;
         }
-        int rows = glp_get_num_cols(lp);
+        int rows = glp_get_num_rows(lp);
         r.clear();
         r.resize(rows);
         for (int i = 0; i < rows; ++i) {
@@ -176,44 +177,6 @@ namespace fm
         ineqs.push_back(move(vec));
     }
 
-    void System::solve_to(int to, int* recorded_order)
-    {
-        int num_orig = num_cols;
-        cerr << "Eliminate: " << num_orig << " -> " << to << endl;
-        for (int step = 0; num_cols > to; ++step) {
-            int best_index = to;
-            int best_rank = get_rank(to);
-            for (int i = to+1; i < num_cols; ++i) {
-                int rank = get_rank(i);
-                if (rank < best_rank) {
-                    best_index = i;
-                    best_rank = rank;
-                }
-            }
-            eliminate(best_index);
-            if (recorded_order) {
-                recorded_order[step] = best_index;
-            }
-        }
-        cerr << endl;
-    }
-
-    int System::get_rank(int index) const
-    {
-        int pos = 0;
-        int neg = 0;
-        for (auto&& vec : ineqs) {
-            Value val = vec.get(index);
-            if (val > 0) {
-                ++pos;
-            }
-            else if (val < 0) {
-                ++neg;
-            }
-        }
-        return (pos*neg) - (pos+neg);
-    }
-
     Problem System::problem() const
     {
         Problem lp(num_cols);
@@ -221,86 +184,6 @@ namespace fm
             lp.add_inequality(vec);
         }
         return lp;
-    }
-
-    void System::eliminate(int index)
-    {
-        int num_orig_ineqs = ineqs.size();
-
-        --num_cols;
-        Matrix _ineqs = move(ineqs);
-        clear(_ineqs.size());
-
-        // Partition inequality constraints into (positive, negative, zero)
-        // coefficient for the given index.
-        Matrix pos, neg;
-        for (auto&& vec : _ineqs) {
-            Value val = vec.get(index);
-            if (val > 0) {
-                pos.push_back(move(vec));
-            }
-            else if (val < 0) {
-                neg.push_back(move(vec));
-            }
-            else if (val == 0) {
-                vec.remove(index);
-                add_inequality(move(vec));
-            }
-        }
-
-        Matrix cand;
-        cand.reserve(pos.size()*neg.size());
-
-        for (auto&& p : pos) {
-            for (auto&& n : neg) {
-                cand.push_back(p.eliminate(n, index));
-            }
-        }
-
-        Problem lp = problem();
-
-        terminal::clear_current_line(cerr);
-        cerr
-            << "   i = " << setw(3) << num_cols
-            << ",  num_ineqs = " << setw(4) << ineqs.size()
-            << ",  p+n = " << setw(3) << pos.size()+neg.size()
-            << "   p*n = " << setw(4) << pos.size()*neg.size()
-            << std::flush;
-        for (int i = 0; i < cand.size(); ++i) {
-            Vector& vec = cand[i];
-            if (!lp.is_redundant(vec)) {
-                lp.add_inequality(vec);
-                add_inequality(move(vec));
-            }
-        }
-        cerr << endl;
-        if (ineqs.size() > num_orig_ineqs + 10) {
-            minimize();
-            terminal::cursor_up(cerr);
-            terminal::clear_current_line(cerr);
-        }
-    }
-
-    void System::minimize()
-    {
-        size_t num_orig = ineqs.size();
-        fm::Problem lp = problem();
-        for (int i = ineqs.size()-1; i >= 0; --i) {
-            cerr << "Minimizing: " << num_orig << " -> " << ineqs.size()
-                << "  (i=" << i << ")"
-                << std::flush;
-            lp.del_row(i+1);
-            if (lp.is_redundant(ineqs[i])) {
-                ineqs.erase(ineqs.begin() + i);
-            }
-            else {
-                lp.add_inequality(ineqs[i]);
-            }
-            terminal::clear_current_line(cerr);
-        }
-        cerr << "Minimizing: " << num_orig << " -> " << ineqs.size()
-            << " (DONE)"
-            << endl;
     }
 
     // class Vector
@@ -411,7 +294,7 @@ namespace fm
         return v0 * s0 + v1 * s1;
     }
 
-    std::ostream& operator << (std::ostream& o, const System& s)
+    ostream& operator << (ostream& o, const System& s)
     {
         for (auto&& v : s.ineqs) {
             o << v << '\n';
@@ -419,7 +302,7 @@ namespace fm
         return o;
     }
 
-    std::ostream& operator << (std::ostream& o, const Vector& v)
+    ostream& operator << (ostream& o, const Vector& v)
     {
         o << "[ ";
         for (auto val : v.values) {
@@ -668,6 +551,208 @@ Matrix parse_matrix(const vector<string>& lines)
     }
     get_num_cols(r);
     return r;
+}
+
+
+//----------------------------------------
+// Operations
+//----------------------------------------
+
+
+void solve_to::run(const solve_to::Callback& cb)
+{
+    auto sg = cb.enter(this);
+    for (int step = 0; sys.num_cols > to; ++step) {
+        auto sg = cb.start_step(step);
+        int best_index = to;
+        int best_rank = get_rank(to);
+        for (int i = to+1; i < sys.num_cols; ++i) {
+            int rank = get_rank(i);
+            if (rank < best_rank) {
+                best_index = i;
+                best_rank = rank;
+            }
+        }
+        eliminate{sys, best_index}.run(*cb.start_eliminate(best_index));
+    }
+}
+
+int solve_to::get_rank(int index) const
+{
+    int pos = 0;
+    int neg = 0;
+    for (auto&& vec : sys.ineqs) {
+        Value val = vec.get(index);
+        if (val > 0) {
+            ++pos;
+        }
+        else if (val < 0) {
+            ++neg;
+        }
+    }
+    return (pos*neg) - (pos+neg);
+}
+
+EliminatePtr solve_to::Callback::start_eliminate(int index) const
+{
+    return P<eliminate::Callback>(new eliminate::Callback());
+}
+
+void eliminate::run(const eliminate::Callback& cb)
+{
+    auto _enter = cb.enter(this);
+
+    System s = sys.copy();
+
+    // Partition inequality constraints into (zero, positive, negative)
+    // coefficient for the given index.
+    Matrix zero, pos, neg;
+    for (auto&& vec : s.ineqs) {
+        Value val = vec.get(index);
+        if (val == 0) {
+            vec.remove(index);
+            zero.push_back(move(vec));
+        }
+        if (val > 0) {
+            pos.push_back(move(vec));
+        }
+        if (val < 0) {
+            neg.push_back(move(vec));
+        }
+    }
+
+    s.ineqs = move(zero);
+    --s.num_cols;
+
+    auto _append = cb.start_append(sys.ineqs.size(), pos.size(), neg.size());
+
+    Problem lp = s.problem();
+    int i = 0;
+    for (auto&& p : pos) {
+        for (auto&& n : neg) {
+            auto _check = cb.start_check(i++);
+            Vector v = p.eliminate(n, index);
+            if (!lp.is_redundant(v)) {
+                lp.add_inequality(v);
+                s.add_inequality(move(v));
+            }
+        }
+    }
+
+    sys = move(s);
+}
+
+void minimize::run(const minimize::Callback& cb)
+{
+    auto sg = cb.enter(this);
+    fm::Problem lp = sys.problem();
+    for (int i = sys.ineqs.size()-1; i >= 0; --i) {
+        auto sg = cb.start_round(i);
+        lp.del_row(i+1);
+        if (lp.is_redundant(sys.ineqs[i])) {
+            sys.ineqs.erase(sys.ineqs.begin() + i);
+        }
+        else {
+            lp.add_inequality(sys.ineqs[i]);
+        }
+    }
+}
+
+
+//----------------------------------------
+// Status callbacks
+//----------------------------------------
+
+IO::IO(std::ostream* o, InputPtr i)
+    : out(o)
+    , inp(i)
+{
+    if (!inp) {
+        inp.reset(new terminal::Input());
+    }
+}
+
+// SolveTo
+
+SG SolveToStatusOutput::enter(solve_to* ctx) const
+{
+    sys = &ctx->sys;
+    *out << "Eliminate: " << sys->num_cols << " -> " << ctx->to << endl;
+    return SG();
+}
+
+SG SolveToStatusOutput::start_step(int step) const
+{
+    if (inp->avail()) {
+        int c = inp->get();
+        if (c == 'm') {
+            minimize{*sys}.run(MinimizeStatusOutput(*this));
+        }
+        if (c == 'c') {
+            // TODO: cancel + output current progress
+        }
+    }
+    return SG();
+}
+
+EliminatePtr SolveToStatusOutput::start_eliminate(int index) const
+{
+    return P<eliminate::Callback>(new EliminateStatusOutput(*this));
+}
+
+SolveToStatusOutput::~SolveToStatusOutput()
+{
+    *out << endl;
+}
+
+// Eliminate
+
+SG EliminateStatusOutput::enter(eliminate* ctx) const
+{
+    sys = &ctx->sys;
+    return SG();
+}
+
+SG EliminateStatusOutput::start_append(int z, int p, int n) const
+{
+    terminal::clear_current_line(*out);
+    *out << "   i = " << setw(3) << sys->num_cols
+        << ",  num_ineqs = " << setw(4) << z
+        << ",  p+n = " << setw(3) << p+n
+        << "   p*n = " << setw(4) << p*n
+        << std::flush;
+    return SG();
+}
+
+EliminateStatusOutput::~EliminateStatusOutput()
+{
+    *out << endl;
+}
+
+// Minimize
+
+SG MinimizeStatusOutput::enter(minimize* ctx) const
+{
+    sys = &ctx->sys;
+    num_orig = ctx->sys.ineqs.size();
+    return SG();
+}
+
+SG MinimizeStatusOutput::start_round(int index) const
+{
+    *out << "Minimizing: " << num_orig << " -> " << sys->ineqs.size()
+        << "  (i=" << index << ")"
+        << std::flush;
+    return SG(nullptr, [this] (void*) {
+        terminal::clear_current_line(*out);
+    });
+}
+
+MinimizeStatusOutput::~MinimizeStatusOutput()
+{
+    *out << "Minimizing: " << num_orig << " -> " << sys->ineqs.size()
+        << " (DONE)"
+        << endl;
 }
 
 
