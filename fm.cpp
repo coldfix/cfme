@@ -8,6 +8,7 @@
 #include <iomanip>      // setw
 #include <iterator>     // istream_iterator, back_inserter
 #include <utility>      // move
+#include <functional>   // bind
 
 #include <glpk.h>
 
@@ -20,9 +21,9 @@
 using std::move;
 using std::string;
 using std::vector;
-using std::cerr;
 using std::endl;
 using std::setw;
+using std::ostream;
 
 
 namespace fm
@@ -176,11 +177,10 @@ namespace fm
         ineqs.push_back(move(vec));
     }
 
-    void System::solve_to(int to, int* recorded_order)
+    void System::solve_to(const SolveToCallback& cb, int to)
     {
-        int num_orig = num_cols;
-        cerr << "Eliminate: " << num_orig << " -> " << to << endl;
         for (int step = 0; num_cols > to; ++step) {
+            auto scope_guard = cb.start_step(step);
             int best_index = to;
             int best_rank = get_rank(to);
             for (int i = to+1; i < num_cols; ++i) {
@@ -190,12 +190,8 @@ namespace fm
                     best_rank = rank;
                 }
             }
-            eliminate(best_index);
-            if (recorded_order) {
-                recorded_order[step] = best_index;
-            }
+            eliminate(*cb.start_eliminate(best_index), best_index);
         }
-        cerr << endl;
     }
 
     int System::get_rank(int index) const
@@ -223,7 +219,7 @@ namespace fm
         return lp;
     }
 
-    void System::eliminate(int index)
+    void System::eliminate(const EliminateCallback& cb, int index)
     {
         int num_orig_ineqs = ineqs.size();
 
@@ -248,6 +244,8 @@ namespace fm
             }
         }
 
+        auto scope_guard = cb.start_append(ineqs.size(), pos.size(), neg.size());
+
         Matrix cand;
         cand.reserve(pos.size()*neg.size());
 
@@ -259,36 +257,21 @@ namespace fm
 
         Problem lp = problem();
 
-        terminal::clear_current_line(cerr);
-        cerr
-            << "   i = " << setw(3) << num_cols
-            << ",  num_ineqs = " << setw(4) << ineqs.size()
-            << ",  p+n = " << setw(3) << pos.size()+neg.size()
-            << "   p*n = " << setw(4) << pos.size()*neg.size()
-            << std::flush;
         for (int i = 0; i < cand.size(); ++i) {
+            auto scope_guard = cb.start_check(i);
             Vector& vec = cand[i];
             if (!lp.is_redundant(vec)) {
                 lp.add_inequality(vec);
                 add_inequality(move(vec));
             }
         }
-        cerr << endl;
-        if (ineqs.size() > num_orig_ineqs + 10) {
-            minimize();
-            terminal::cursor_up(cerr);
-            terminal::clear_current_line(cerr);
-        }
     }
 
-    void System::minimize()
+    void System::minimize(const MinimizeCallback& cb)
     {
-        size_t num_orig = ineqs.size();
         fm::Problem lp = problem();
         for (int i = ineqs.size()-1; i >= 0; --i) {
-            cerr << "Minimizing: " << num_orig << " -> " << ineqs.size()
-                << "  (i=" << i << ")"
-                << std::flush;
+            auto scope_guard = cb.start_round(i);
             lp.del_row(i+1);
             if (lp.is_redundant(ineqs[i])) {
                 ineqs.erase(ineqs.begin() + i);
@@ -296,12 +279,9 @@ namespace fm
             else {
                 lp.add_inequality(ineqs[i]);
             }
-            terminal::clear_current_line(cerr);
         }
-        cerr << "Minimizing: " << num_orig << " -> " << ineqs.size()
-            << " (DONE)"
-            << endl;
     }
+
 
     // class Vector
 
@@ -411,7 +391,7 @@ namespace fm
         return v0 * s0 + v1 * s1;
     }
 
-    std::ostream& operator << (std::ostream& o, const System& s)
+    ostream& operator << (ostream& o, const System& s)
     {
         for (auto&& v : s.ineqs) {
             o << v << '\n';
@@ -419,7 +399,7 @@ namespace fm
         return o;
     }
 
-    std::ostream& operator << (std::ostream& o, const Vector& v)
+    ostream& operator << (ostream& o, const Vector& v)
     {
         o << "[ ";
         for (auto val : v.values) {
@@ -668,6 +648,105 @@ Matrix parse_matrix(const vector<string>& lines)
     }
     get_num_cols(r);
     return r;
+}
+
+
+
+//----------------------------------------
+// Status callbacks
+//----------------------------------------
+
+// silent defaults
+
+ScopeGuard SolveToCallback::start_step(int step) const
+{
+    return ScopeGuard();
+}
+
+P<EliminateCallback> SolveToCallback::start_eliminate(int index) const
+{
+    return P<EliminateCallback>(new EliminateCallback());
+}
+
+ScopeGuard EliminateCallback::start_append(int, int, int) const
+{
+    return ScopeGuard();
+}
+
+ScopeGuard EliminateCallback::start_check(int i) const
+{
+    return ScopeGuard();
+}
+
+ScopeGuard MinimizeCallback::start_round(int i) const
+{
+    return ScopeGuard();
+}
+
+// SolveTo
+
+SolveToStatusOutput::SolveToStatusOutput(std::ostream& o, System& s, int to)
+    : StatusOutput{&o, &s}
+{
+    o << "Eliminate: " << s.num_cols << " -> " << to << endl;
+}
+
+P<EliminateCallback> SolveToStatusOutput::start_eliminate(int index) const
+{
+    return P<EliminateCallback>(new EliminateStatusOutput(*o, *s));
+}
+
+SolveToStatusOutput::~SolveToStatusOutput()
+{
+    *o << endl;
+}
+
+// Eliminate
+
+EliminateStatusOutput::EliminateStatusOutput(std::ostream& o, System& s)
+    : StatusOutput{&o, &s}
+{
+}
+
+ScopeGuard EliminateStatusOutput::start_append(int z, int p, int n) const
+{
+    terminal::clear_current_line(*o);
+    *o  << "   i = " << setw(3) << s->num_cols
+        << ",  num_ineqs = " << setw(4) << z
+        << ",  p+n = " << setw(3) << p+n
+        << "   p*n = " << setw(4) << p*n
+        << std::flush;
+    return ScopeGuard();
+}
+
+EliminateStatusOutput::~EliminateStatusOutput()
+{
+    *o << endl;
+}
+
+// Minimize
+
+MinimizeStatusOutput::MinimizeStatusOutput(ostream& o, System& s)
+    : StatusOutput{&o, &s}
+    , num_orig(s.ineqs.size())
+{
+}
+
+ScopeGuard MinimizeStatusOutput::start_round(int index) const
+{
+    *o  << "Minimizing: " << num_orig << " -> " << s->ineqs.size()
+        << "  (i=" << index << ")"
+        << std::flush;
+    return ScopeGuard(nullptr, [this] (void*) {
+        terminal::clear_current_line(*o);
+    });
+}
+
+MinimizeStatusOutput::~MinimizeStatusOutput()
+{
+    *o  << "Minimizing: " << num_orig << " -> " << s->ineqs.size()
+        << " (DONE)"
+        << endl;
 }
 
 

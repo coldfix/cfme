@@ -34,7 +34,7 @@ try
         system.add_inequality(constraint.injection(system.num_cols, width));
     }
 
-    system.minimize();
+    system.minimize(fm::MinimizeStatusOutput(cerr, system));
 
     cout << gen.str() << endl;
     cout << system << endl;

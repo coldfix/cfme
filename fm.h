@@ -26,6 +26,13 @@ namespace fm
     template <class T>
         using P = std::shared_ptr<T>;
 
+    typedef P<void> ScopeGuard;
+
+
+    struct SolveToCallback;
+    struct EliminateCallback;
+    struct MinimizeCallback;
+
 
     class matrix_parse_error : public std::runtime_error
     {
@@ -89,11 +96,11 @@ namespace fm
         void add_inequality(Vector&& v);
         void add_equality(Vector&& v);
 
-        void solve_to(int to, int* recorded_order=nullptr);
-
         Problem problem() const;
-        void eliminate(int i);
-        void minimize();
+
+        void solve_to(const SolveToCallback&, int to);
+        void eliminate(const EliminateCallback&, int i);
+        void minimize(const MinimizeCallback&);
 
         friend std::ostream& operator << (std::ostream&, const System&);
     };
@@ -159,6 +166,57 @@ namespace fm
 
     fm::Vector parse_vector(std::string line);
     Matrix parse_matrix(const std::vector<std::string>& lines);
+
+
+    // status/control callbacks
+
+    struct CallbackBase {
+        virtual ~CallbackBase() {}
+    };
+
+    struct SolveToCallback : CallbackBase {
+        virtual ScopeGuard start_step(int step) const;
+        virtual P<EliminateCallback> start_eliminate(int index) const;
+    };
+
+    struct EliminateCallback : CallbackBase {
+        virtual ScopeGuard start_append(int z, int p, int n) const;
+        virtual ScopeGuard start_check(int index) const;
+    };
+
+    struct MinimizeCallback : CallbackBase {
+        virtual ScopeGuard start_round(int i) const;
+    };
+
+    struct StatusOutput
+    {
+        std::ostream* o;
+        System* s;
+    };
+
+    struct SolveToStatusOutput : SolveToCallback, StatusOutput
+    {
+        SolveToStatusOutput(std::ostream&, System&, int to);
+        ~SolveToStatusOutput();
+        P<EliminateCallback> start_eliminate(int index) const;
+    };
+
+    struct EliminateStatusOutput : EliminateCallback, StatusOutput
+    {
+        EliminateStatusOutput(std::ostream&, System&);
+        ~EliminateStatusOutput();
+        ScopeGuard start_append(int z, int p, int n) const;
+    };
+
+    struct MinimizeStatusOutput : MinimizeCallback, StatusOutput
+    {
+        int num_orig;
+
+        MinimizeStatusOutput(std::ostream&, System&);
+        ~MinimizeStatusOutput();
+        ScopeGuard start_round(int i) const;
+    };
+
 }
 
 #endif  // include guard

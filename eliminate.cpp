@@ -19,6 +19,27 @@
 using std::cout;
 using std::cerr;
 using std::endl;
+using std::vector;
+
+
+struct RecordOrder : fm::SolveToStatusOutput
+{
+    vector<int>* recorded_order;
+
+    typedef fm::SolveToStatusOutput super;
+
+    RecordOrder(std::ostream& o, fm::System& s, int to, vector<int>* r)
+        : super(o, s, to)
+        , recorded_order(r)
+    {
+    }
+
+    fm::P<fm::EliminateCallback> start_eliminate(int index)
+    {
+        recorded_order->push_back(index);
+        return super::start_eliminate(index);
+    }
+};
 
 
 int main(int argc, char** argv, char** env)
@@ -40,9 +61,10 @@ try
     // are indeed implied (consistency check for FM algorithm):
     fm::Problem orig_lp = system.problem();
 
-    std::vector<int> recorded_order(system.num_cols - solve_to);
-    system.solve_to(solve_to, recorded_order.data());
-    system.minimize();
+    vector<int> recorded_order;
+    system.solve_to(RecordOrder(cerr, system, solve_to, &recorded_order),
+                    solve_to);
+    system.minimize(fm::MinimizeStatusOutput(cerr, system));
 
     cerr << "Reduced to "
         << system.ineqs.size() << " inequalities and "
