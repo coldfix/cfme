@@ -4,6 +4,13 @@
 #include <fstream>
 #include "util.h"
 
+#include <stdlib.h>         // these are for terminal Input
+#include <termios.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <sys/stat.h>       // open
+#include <fcntl.h>          // O_RDONLY
+
 
 using std::string;
 
@@ -45,6 +52,43 @@ void terminal::cursor_up(std::ostream& out, int num_lines)
 void terminal::clear_current_line(std::ostream& out)
 {
     out << "\r\033[K" << std::flush;
+}
+
+
+terminal::Input::Input()
+{
+    fd = open("/dev/tty", O_RDONLY);
+    tcgetattr(fd, &ttystate_restore);
+    ttystate_replace = ttystate_restore;
+    ttystate_replace.c_lflag &= ~(ICANON | ECHO);
+    ttystate_replace.c_cc[VMIN] = 1;        // minimum of number input read.
+    tcsetattr(fd, TCSANOW, &ttystate_replace);
+}
+
+terminal::Input::~Input()
+{
+    tcsetattr(fd, TCSANOW, &ttystate_restore);
+    close(fd);
+}
+
+int terminal::Input::get()
+{
+    char c;
+    read(fd, &c, 1);
+    return c;
+}
+
+bool terminal::Input::avail()
+{
+    // from http://cc.byexamples.com/2007/04/08/non-blocking-user-input-in-loop-without-ncurses/
+    struct timeval tv;
+    fd_set fds;
+    tv.tv_sec = 0;
+    tv.tv_usec = 0;
+    FD_ZERO(&fds);
+    FD_SET(fd, &fds);
+    select(fd+1, &fds, NULL, NULL, &tv);
+    return FD_ISSET(fd, &fds);
 }
 
 

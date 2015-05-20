@@ -10,11 +10,25 @@
 
 # include <boost/timer/timer.hpp>
 
+# include <termios.h>
+
 
 namespace terminal
 {
     void cursor_up(std::ostream&, int num_lines=1);
     void clear_current_line(std::ostream& out);
+
+    class Input
+    {
+        termios ttystate_restore, ttystate_replace;
+        int fd;
+    public:
+        Input();
+        ~Input();
+
+        bool avail();
+        int get();
+    };
 }
 
 
