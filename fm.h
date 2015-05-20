@@ -10,6 +10,10 @@
 # include <valarray>
 # include <vector>
 
+# include "util.h"
+
+# define EMPTY(type) { return type(); }
+
 
 struct glp_prob;
 
@@ -26,7 +30,7 @@ namespace fm
     template <class T>
         using P = std::shared_ptr<T>;
 
-    typedef P<void> ScopeGuard;
+    typedef P<void> ScopeGuard, SG;
 
 
     struct SolveToCallback;
@@ -70,10 +74,6 @@ namespace fm
 
     class System
     {
-        // Unique ID for the current row (used for redundancy check short-cut):
-        size_t next_row_id = 0;
-
-        int get_rank(int) const;
     public:
         Matrix ineqs;
         size_t num_cols;
@@ -97,10 +97,6 @@ namespace fm
         void add_equality(Vector&& v);
 
         Problem problem() const;
-
-        void solve_to(const SolveToCallback&, int to);
-        void eliminate(const EliminateCallback&, int i);
-        void minimize(const MinimizeCallback&);
 
         friend std::ostream& operator << (std::ostream&, const System&);
     };
@@ -174,47 +170,82 @@ namespace fm
         virtual ~CallbackBase() {}
     };
 
-    struct SolveToCallback : CallbackBase {
-        virtual ScopeGuard start_step(int step) const;
-        virtual P<EliminateCallback> start_eliminate(int index) const;
-    };
-
-    struct EliminateCallback : CallbackBase {
-        virtual ScopeGuard start_append(int z, int p, int n) const;
-        virtual ScopeGuard start_check(int index) const;
-    };
-
-    struct MinimizeCallback : CallbackBase {
-        virtual ScopeGuard start_round(int i) const;
-    };
-
-    struct StatusOutput
+    struct minimize
     {
-        std::ostream* o;
-        System* s;
+        System& sys;
+
+        struct Callback : CallbackBase {
+            virtual SG enter(minimize*) const EMPTY(SG);
+            virtual SG start_round(int i) const EMPTY(SG);
+        };
+        void run(const Callback& cb=Callback());
     };
 
-    struct SolveToStatusOutput : SolveToCallback, StatusOutput
+    struct eliminate
     {
-        SolveToStatusOutput(std::ostream&, System&, int to);
-        ~SolveToStatusOutput();
-        P<EliminateCallback> start_eliminate(int index) const;
+        System& sys;
+        int index;
+
+        struct Callback : CallbackBase {
+            virtual SG enter(eliminate*) const EMPTY(SG);
+            virtual SG start_append(int z, int p, int n) const EMPTY(SG);
+            virtual SG start_check(int index) const EMPTY(SG);
+        };
+        void run(const Callback& cb=Callback());
     };
 
-    struct EliminateStatusOutput : EliminateCallback, StatusOutput
+    typedef P<eliminate::Callback> EliminatePtr;
+
+    struct solve_to
     {
-        EliminateStatusOutput(std::ostream&, System&);
-        ~EliminateStatusOutput();
-        ScopeGuard start_append(int z, int p, int n) const;
+        System& sys;
+        int to;
+        int get_rank(int) const;
+
+        struct Callback : CallbackBase {
+            virtual SG enter(solve_to*) const EMPTY(SG);
+            virtual SG start_step(int step) const EMPTY(SG);
+            virtual EliminatePtr start_eliminate(int index) const;
+        };
+        void run(const Callback& cb=Callback());
     };
 
-    struct MinimizeStatusOutput : MinimizeCallback, StatusOutput
-    {
-        int num_orig;
+    typedef P<terminal::Input> InputPtr;
 
-        MinimizeStatusOutput(std::ostream&, System&);
+    struct IO
+    {
+        std::ostream* out;
+        InputPtr inp;
+        IO(std::ostream*, InputPtr=InputPtr());
+    };
+
+    struct MinimizeStatusOutput : minimize::Callback, IO
+    {
+        mutable System* sys;
+        mutable int num_orig;
+        MinimizeStatusOutput(IO io) : IO(io) {}
         ~MinimizeStatusOutput();
-        ScopeGuard start_round(int i) const;
+        SG enter(minimize*) const                       override;
+        SG start_round(int i) const                     override;
+    };
+
+    struct EliminateStatusOutput : eliminate::Callback, IO
+    {
+        mutable System* sys;
+        EliminateStatusOutput(IO io) : IO(io) {}
+        ~EliminateStatusOutput();
+        SG enter(eliminate*) const                      override;
+        SG start_append(int z, int p, int n) const      override;
+    };
+
+    struct SolveToStatusOutput : solve_to::Callback, IO
+    {
+        mutable System* sys;
+        SolveToStatusOutput(IO io) : IO(io) {}
+        ~SolveToStatusOutput();
+        SG enter(solve_to*) const                       override;
+        SG start_step(int step) const                   override;
+        EliminatePtr start_eliminate(int index) const   override;
     };
 
 }

@@ -28,13 +28,13 @@ struct RecordOrder : fm::SolveToStatusOutput
 
     typedef fm::SolveToStatusOutput super;
 
-    RecordOrder(std::ostream& o, fm::System& s, int to, vector<int>* r)
-        : super(o, s, to)
+    RecordOrder(const fm::IO& io, vector<int>* r)
+        : super(io)
         , recorded_order(r)
     {
     }
 
-    fm::P<fm::EliminateCallback> start_eliminate(int index)
+    fm::EliminatePtr start_eliminate(int index) const override
     {
         recorded_order->push_back(index);
         return super::start_eliminate(index);
@@ -55,6 +55,8 @@ try
     size_t solve_to = std::atol(argv[1]);
     size_t width = intlog2(solve_to);
 
+    fm::IO io(&cerr);
+
     fm::System system = fm::parse_matrix(util::read_file(std::cin));
 
     // make a copy that can be used later to verify that inequalities
@@ -62,9 +64,8 @@ try
     fm::Problem orig_lp = system.problem();
 
     vector<int> recorded_order;
-    system.solve_to(RecordOrder(cerr, system, solve_to, &recorded_order),
-                    solve_to);
-    system.minimize(fm::MinimizeStatusOutput(cerr, system));
+    fm::solve_to{system, solve_to}.run(RecordOrder(io, &recorded_order));
+    fm::minimize{system}.run(fm::MinimizeStatusOutput(io));
 
     cerr << "Reduced to "
         << system.ineqs.size() << " inequalities and "

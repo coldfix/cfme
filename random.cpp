@@ -36,8 +36,8 @@ fm::Matrix random_elimination(fm::System system, int num_drop)
         matrix.erase(matrix.begin() + index);
     }
 
-    system.solve_to(fm::SolveToCallback(), solve_to);
-    system.minimize(fm::MinimizeCallback());
+    fm::solve_to{system, solve_to}.run();
+    fm::minimize{system}.run();
     return move(system.ineqs);
 }
 
@@ -79,7 +79,7 @@ struct Result
         for (auto&& v : m) {
             discovery.add_inequality(v.copy());
         }
-        discovery.minimize(fm::MinimizeCallback());
+        fm::minimize{discovery}.run();
 
         int num_nontriv = count_nontrivial(elemental, m);
         int num_missing = count_nontrivial(discovery, ref_solution.ineqs);
