@@ -9,6 +9,7 @@
 #include <cstdlib>          // atol
 #include <cstddef>
 #include <iomanip>          // setw
+#include <chrono>
 
 #include <random>
 
@@ -19,6 +20,54 @@
 #include "number.h"
 
 using namespace std;
+
+
+struct timeout_error : public std::runtime_error
+{
+    using runtime_error::runtime_error;
+};
+
+
+typedef chrono::steady_clock Clock;
+typedef chrono::time_point<Clock> Time;
+using std::chrono::seconds;
+
+
+struct Timeout
+{
+    Time start;
+    seconds limit;
+
+    Timeout(seconds l)
+        : start(Clock::now())
+        , limit(l)
+    {
+    }
+
+    bool operator() () const
+    {
+        return Clock::now() - start > limit;
+    }
+};
+
+
+struct SolveToTimelimit : fm::solve_to::Callback
+{
+    Timeout timeout;
+
+    SolveToTimelimit(seconds timelimit)
+        : timeout(timelimit)
+    {
+    }
+
+    fm::SG start_step(int step) const                   override
+    {
+        if (timeout()) {
+            throw timeout_error("Running out of time.");
+        }
+        return fm::SG();
+    }
+};
 
 
 fm::Matrix random_elimination(fm::System system, int num_drop)
@@ -36,7 +85,7 @@ fm::Matrix random_elimination(fm::System system, int num_drop)
         matrix.erase(matrix.begin() + index);
     }
 
-    fm::solve_to{system, solve_to}.run();
+    fm::solve_to{system, solve_to}.run(SolveToTimelimit(seconds(30)));
     fm::minimize{system}.run();
     return move(system.ineqs);
 }
@@ -59,18 +108,23 @@ struct Result
     std::vector<int> num_found;
     std::vector<int> num_nontrivial;
     std::vector<int> missing_nontrivial;
+    Timeout timeout;
 
     int width;
     fm::System discovery;
     fm::System ref_solution;
     fm::System elemental;
     bool finished = false;
+    int num_timeouts = 0;
+    int num_nontriv;
+    int num_missing;
 
     Result(fm::System ref)
         : width(intlog2(ref.num_cols))
         , discovery(ref.ineqs.size(), ref.num_cols)
         , ref_solution(move(ref))
         , elemental(fm::elemental_inequalities(width))
+        , timeout(seconds(60))
     {
     }
 
@@ -81,8 +135,8 @@ struct Result
         }
         fm::minimize{discovery}.run();
 
-        int num_nontriv = count_nontrivial(elemental, m);
-        int num_missing = count_nontrivial(discovery, ref_solution.ineqs);
+        num_nontriv = count_nontrivial(elemental, m);
+        num_missing = count_nontrivial(discovery, ref_solution.ineqs);
         finished = num_missing == 0;
 
         ++number_of_steps;
@@ -97,8 +151,13 @@ struct Result
 
     void run(fm::System init_state, int num_drop)
     {
-        while (!finished) {
-            add(random_elimination(init_state.copy(), num_drop));
+        while (!finished && !timeout()) {
+            try {
+                add(random_elimination(init_state.copy(), num_drop));
+            }
+            catch (timeout_error& e) {
+                ++num_timeouts;
+            }
         }
     }
 };
