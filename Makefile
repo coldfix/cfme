@@ -10,6 +10,7 @@ BIN = \
 	  check_shift_invariance \
 	  diff-systems \
 	  minimize_system \
+	  random \
 
 
 all: $(addprefix bin/,$(BIN))

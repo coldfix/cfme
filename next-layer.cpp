@@ -34,10 +34,11 @@ try
         system.add_inequality(constraint.injection(system.num_cols, width));
     }
 
-    system.minimize();
+    fm::minimize{system}.run(fm::MinimizeStatusOutput(&cerr));
 
     cout << gen.str() << endl;
     cout << system << endl;
+    return 0;
 }
 catch (...)
 {

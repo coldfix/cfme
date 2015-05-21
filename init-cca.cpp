@@ -30,7 +30,7 @@ try
     fm::System system = fm::elemental_inequalities(num_vars);
     fm::set_initial_state_iid(system, width);
     fm::add_causal_constraints(system, width);
-    system.minimize();
+    fm::minimize{system}.run(fm::MinimizeStatusOutput(&cerr));
 
     cout << gen.str() << endl;
     cout << system << endl;

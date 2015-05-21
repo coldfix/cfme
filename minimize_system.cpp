@@ -21,7 +21,7 @@ try
     fm::System system = fm::parse_matrix(util::read_file(cin));
 
     util::AutogenNotice gen(argc, argv);
-    system.minimize();
+    fm::minimize{system}.run(fm::MinimizeStatusOutput(&cerr));
 
     cout << gen.str() << endl;
     cout << system << endl;
