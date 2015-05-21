@@ -75,6 +75,12 @@ namespace util
     }
 
 
+    template <class T>
+    void extend(std::vector<T>& a, const std::vector<T>& b)
+    {
+        a.reserve(a.size() + b.size());
+        a.insert(a.end(), b.begin(), b.end());
+    }
 }
 
 
