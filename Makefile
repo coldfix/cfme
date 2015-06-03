@@ -1,4 +1,4 @@
-CFLAGS=-std=c++11 -O3
+CFLAGS=-std=c++11 -g
 LFLAGS=-lglpk -lboost_system -lboost_timer
 
 
@@ -11,6 +11,8 @@ BIN = \
 	  diff-systems \
 	  minimize_system \
 	  random \
+	  random-accumulate \
+	  elemental-inequalities \
 
 
 all: $(addprefix bin/,$(BIN))
