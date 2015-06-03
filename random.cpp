@@ -10,6 +10,7 @@
 #include <cstdlib>          // atol
 #include <cstddef>
 #include <iomanip>          // setw
+#include <sstream>
 
 #include <random>
 
@@ -175,6 +176,20 @@ double sq(double v)
     return v * v;
 }
 
+
+string format(double d)
+{
+    ostringstream out;
+    out
+      << std::fixed
+      << std::right
+      << std::setprecision(3)
+      << std::setw(8)
+      << d;
+    return out.str();
+}
+
+
 struct Statistic
 {
     double sum = 0;
@@ -220,7 +235,9 @@ struct Statistic
 
     friend ostream& operator << (ostream& out, const Statistic& s)
     {
-        out << s.mean() << " " << s.stderr() << " " << s.stddev();
+        return out << format(s.mean())
+            << " " << format(s.stderr())
+            << " " << format(s.stddev());
     }
 };
 
@@ -290,8 +307,18 @@ try
     r.run(init_state.copy(), num_drop, num_turns, timelimit);
 
     cout << gen.str() << endl;
-    cout << "runtime: " << r.runtime() << endl;
-    cout << "steps: " << r.num_steps() << endl;
+    cout << "#"
+        << setw(3) << "N"   << "    "
+        << setw(8) << "t"   << " "
+        << setw(8) << "err" << " "
+        << setw(8) << "dev" << "    "
+        << setw(8) << "n"   << " "
+        << setw(8) << "err" << " "
+        << setw(8) << "dev" << endl
+        << setw(4) << num_drop  << "    "
+        << r.runtime()          << "    "
+        << r.num_steps()        << endl
+        ;
     return 0;
 }
 catch (...)
