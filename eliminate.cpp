@@ -52,8 +52,8 @@ try
         return 1;
     }
 
-    size_t solve_to = std::atol(argv[1]);
-    size_t width = intlog2(solve_to);
+    int solve_to = std::atol(argv[1]);
+    int width = intlog2(solve_to);
 
     fm::IO io(&cerr);
 
