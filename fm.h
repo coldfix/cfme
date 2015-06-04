@@ -4,6 +4,7 @@
 #ifndef __FM_H__INCLUDED__
 #define __FM_H__INCLUDED__
 
+# include <cmath>       // INFINITY
 # include <iostream>
 # include <memory>
 # include <stdexcept>
@@ -63,8 +64,8 @@ namespace fm
         Problem();
         explicit Problem(size_t num_cols);
 
-        void add_equality(const Vector&);
-        void add_inequality(const Vector&);
+        void add_equality(const Vector&, double rhs=0.0);
+        void add_inequality(const Vector&, double lb=0.0, double ub=INFINITY);
         void del_row(int i);
 
         bool is_redundant(const Vector&) const;

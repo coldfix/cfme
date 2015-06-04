@@ -65,17 +65,28 @@ namespace fm
                 indices.size()-1, indices.data(), values.data());
     }
 
-    void Problem::add_equality(const Vector& v)
+    void Problem::add_equality(const Vector& v, double rhs)
     {
         int i = glp_add_rows(prob.get(), 1);
-        glp_set_row_bnds(prob.get(), i, GLP_FX, 0.0, 0.0);
+        glp_set_row_bnds(prob.get(), i, GLP_FX, rhs, rhs);
         set_mat_row(i, v);
     }
 
-    void Problem::add_inequality(const Vector& v)
+    void Problem::add_inequality(const Vector& v, double lb, double ub)
     {
         int i = glp_add_rows(prob.get(), 1);
-        glp_set_row_bnds(prob.get(), i, GLP_LO, 0.0, NAN);
+        if (lb == -INFINITY && ub == INFINITY) {
+            glp_set_row_bnds(prob.get(), i, GLP_FR, NAN, NAN);
+        }
+        else if (lb > -INFINITY && ub == INFINITY) {
+            glp_set_row_bnds(prob.get(), i, GLP_LO, lb, NAN);
+        }
+        else if (lb == -INFINITY && ub < INFINITY) {
+            glp_set_row_bnds(prob.get(), i, GLP_LO, NAN, ub);
+        }
+        else {
+            glp_set_row_bnds(prob.get(), i, GLP_DB, lb, ub);
+        }
         set_mat_row(i, v);
     }
 
