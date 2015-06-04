@@ -6,18 +6,20 @@
 
 # include <cmath>       // INFINITY
 # include <iostream>
-# include <memory>
-# include <stdexcept>
+# include <memory>      // shared_ptr
+# include <stdexcept>   // runtime_error
 # include <valarray>
 # include <vector>
-
-# include "util.h"
 
 # define EMPTY(type) { return type(); }
 
 
+// External
 struct glp_prob;
+namespace terminal { class Input; }
 
+
+// Local
 
 namespace fm
 {
