@@ -46,6 +46,15 @@ namespace fm
     struct MinimizeCallback;
 
 
+    enum Status {
+        UNDEF=1,/* solution is undefined */
+        FEAS,   /* solution is feasible */
+        INFEAS, /* solution is infeasible */
+        NOFEAS, /* no feasible solution exists */
+        OPT,    /* solution is optimal */
+        UNBND,  /* solution is unbounded */
+    };
+
     // Minimization problem
     class Problem
     {
@@ -64,6 +73,8 @@ namespace fm
 
         bool is_redundant(const Vector&) const;
         bool dual(const Vector&, std::vector<double>&) const;
+
+        Status simplex(const Vec<double>&, Vec<double>* o=nullptr) const;
     };
 
 

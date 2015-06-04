@@ -93,9 +93,14 @@ namespace fm
 
     bool Problem::is_redundant(const Vector& v) const
     {
+        return simplex(la::convert<double>(v.values)) == OPT;
+    }
+
+    Status Problem::simplex(const Vec<double>& v, Vec<double>* o) const
+    {
         _assert<la::size_error>(v.size() == num_cols);
         for (int i = 1; i < num_cols; ++i) {
-            glp_set_obj_coef(prob.get(), i, v.get(i));
+            glp_set_obj_coef(prob.get(), i, v[i]);
         }
         glp_std_basis(prob.get());
         glp_smcp parm;
@@ -105,7 +110,14 @@ namespace fm
         if (result != 0) {
             throw std::runtime_error("Error in glp_simplex.");
         }
-        return glp_get_status(prob.get()) == GLP_OPT;
+
+        int status = glp_get_status(prob.get());
+        if (status == GLP_OPT && o) {
+            for (int i = 1; i < o->size(); ++i) {
+                (*o)[i] = glp_get_col_prim(prob.get(), i);
+            }
+        }
+        return (Status) status;
     }
 
     bool Problem::dual(const Vector& v, std::vector<double>& r) const
