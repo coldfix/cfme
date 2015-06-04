@@ -2,13 +2,9 @@
 // inequalities).
 
 
-#include <algorithm>    // copy
-#include <cassert>
 #include <cmath>
 #include <iomanip>      // setw
-#include <iterator>     // istream_iterator, back_inserter
 #include <utility>      // move
-#include <functional>   // bind
 
 #include <glpk.h>
 
@@ -97,7 +93,7 @@ namespace fm
 
     bool Problem::is_redundant(const Vector& v) const
     {
-        assert(v.size() == num_cols);
+        _assert<la::size_error>(v.size() == num_cols);
         for (int i = 1; i < num_cols; ++i) {
             glp_set_obj_coef(prob.get(), i, v.get(i));
         }
@@ -114,7 +110,7 @@ namespace fm
 
     bool Problem::dual(const Vector& v, std::vector<double>& r) const
     {
-        assert(v.size() == num_cols);
+        _assert<la::size_error>(v.size() == num_cols);
         glp_prob* lp = prob.get();
         for (int i = 1; i < num_cols; ++i) {
             glp_set_obj_coef(lp, i, v.get(i));
@@ -172,7 +168,7 @@ namespace fm
 
     void System::add_equality(Vector&& vec)
     {
-        assert(vec.size() == num_cols);
+        _assert<la::size_error>(vec.size() == num_cols);
         if (vec.empty())
             return;
         ineqs.push_back(vec.copy());
@@ -182,7 +178,7 @@ namespace fm
 
     void System::add_inequality(Vector&& vec)
     {
-        assert(vec.size() == num_cols);
+        _assert<la::size_error>(vec.size() == num_cols);
         if (vec.empty())
             return;
         ineqs.push_back(move(vec));
@@ -201,6 +197,11 @@ namespace fm
 
     Vector::Vector(size_t size)
         : values(size)
+    {
+    }
+
+    Vector::Vector(ValArray v)
+        : values(move(v))
     {
     }
 
@@ -280,7 +281,7 @@ namespace fm
 
     Vector Vector::injection(size_t dim, size_t shift) const
     {
-        assert(dim >= size()<<shift);
+        _assert<la::size_error>(dim >= size()<<shift);
         Vector r(dim);
         for (size_t i = 0; i < size(); ++i) {
             r.set(i<<shift, get(i));
@@ -294,15 +295,8 @@ namespace fm
                            const Vector& v1, Value s1)
     {
         Vector r;
-        r.values = scaled_addition(v0.values, s0, v1.values, s1);
+        r.values = la::scaled_addition(v0.values, s0, v1.values, s1);
         return r;
-    }
-
-    ValArray scaled_addition(const ValArray& v0, Value s0,
-                             const ValArray& v1, Value s1)
-    {
-        assert(v0.size() == v1.size());
-        return v0 * s0 + v1 * s1;
     }
 
     ostream& operator << (ostream& o, const System& s)
@@ -315,23 +309,12 @@ namespace fm
 
     ostream& operator << (ostream& o, const Vector& v)
     {
-        o << "[ ";
-        for (auto val : v.values) {
-            o << setw(3) << val << ' ';
-        }
-        o << "]";
-        return o;
+        return la::print_vector(o, v.values);
     }
 
     bool operator == (const Vector& a, const Vector& b)
     {
-        assert(a.size() == b.size());
-        for (int i = 0; i < a.size(); ++i) {
-            if (a.get(i) != b.get(i)) {
-                return false;
-            }
-        }
-        return true;
+        return la::equal(a.values, b.values);
     }
 
 //----------------------------------------
@@ -471,7 +454,7 @@ int get_num_cols(const Matrix& matrix)
         return -1;
     int size = matrix[0].size();
     for (auto&& v : matrix) {
-        _assert<matrix_size_error>(v.size() == size,
+        _assert<la::size_error>(v.size() == size,
                 "size does not match", v.copy());
     }
     return size;
@@ -482,7 +465,7 @@ int get_num_vars(const Matrix& matrix)
     int size = get_num_cols(matrix);
     if (size == -1)
         return -1;
-    _assert<matrix_size_error>(is_power_of_2(size),
+    _assert<la::size_error>(is_power_of_2(size),
             "size must be power of 2", size);
     return intlog2(size);
 }
@@ -519,49 +502,18 @@ Matrix minimize_system(const Matrix& sys)
     return r;
 }
 
-string trim(string s)
-{
-    int beg = s.find_first_not_of(" \t");
-    int end = s.find_last_not_of(" \t");
-    if (beg == -1)
-        return string();
-    return s.substr(beg, end-beg+1);
-}
-
-string remove_comment(string s)
-{
-    int beg = s.find('#');
-    if (beg == -1)
-        return s;
-    return s.substr(0, beg);
-}
-
 Vector parse_vector(string line)
 {
-    typedef std::istream_iterator<int> iit;
-    _assert<matrix_parse_error>(line.front() == '[', "expecting '['", line);
-    _assert<matrix_parse_error>(line.back() == ']', "expecting ']'", line);
-    line = trim(line.substr(1, line.size()-2));
-    std::istringstream in(line);
-    vector<int> vals;
-    copy(iit(in), iit(), std::back_inserter(vals));
-    Vector r(vals.size());
-    copy(vals.begin(), vals.end(), begin(r.values));
-    return r;
+    return la::parse_vector<Value>(line);
 }
 
 Matrix parse_matrix(const vector<string>& lines)
 {
-    Matrix r;
-    for (string line : lines) {
-        line = remove_comment(line);
-        line = trim(line);
-        if (line.empty())
-            continue;
-        r.push_back(parse_vector(line));
+    Matrix m;
+    for (auto&& v : la::parse_matrix<Value>(lines)) {
+        m.push_back(move(v));
     }
-    get_num_cols(r);
-    return r;
+    return m;
 }
 
 

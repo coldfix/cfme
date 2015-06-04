@@ -31,7 +31,7 @@ Matrix unimplied(const Matrix& a, const Matrix& b)
         num_vars = num_vars_a;
     }
     else {
-        _assert<fm::matrix_size_error>(num_vars_a == num_vars_b,
+        _assert<la::size_error>(num_vars_a == num_vars_b,
                 "systems must not differ in size");
         num_vars = num_vars_a;
     }

@@ -34,6 +34,7 @@ namespace terminal
 
 namespace util
 {
+
     class AutogenNotice
     {
         boost::timer::cpu_timer timer;
@@ -49,10 +50,11 @@ namespace util
     std::string get_command_output(const std::string& command);
 
     std::string join(const std::vector<std::string>&, const std::string& sep);
+    std::string trim(std::string);
+    std::string remove_comment(std::string);
 
     std::vector<std::string> read_file(std::istream&);
     std::vector<std::string> read_file(const std::string& filename);
-
 
     inline void print_all(std::ostream& out)
     {

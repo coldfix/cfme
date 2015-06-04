@@ -7,9 +7,10 @@
 # include <cmath>       // INFINITY
 # include <iostream>
 # include <memory>      // shared_ptr
-# include <stdexcept>   // runtime_error
 # include <valarray>
 # include <vector>
+
+# include "linalg.h"
 
 # define EMPTY(type) { return type(); }
 
@@ -23,35 +24,26 @@ namespace terminal { class Input; }
 
 namespace fm
 {
+    // import
+    template <class T> using P = std::shared_ptr<T>;
+    template <class T> using Vec = la::Vector<T>;
+    template <class T> using Mat = la::Matrix<T>;
+
+    // helper
+    typedef P<void> ScopeGuard, SG;
+
+    // export
     class System;
     class Vector;
     typedef std::vector<Vector> Matrix;
 
-    typedef long Value;
-    typedef std::valarray<Value> ValArray;
-
-    template <class T>
-        using P = std::shared_ptr<T>;
-
-    typedef P<void> ScopeGuard, SG;
+    typedef int Value;
+    typedef Vec<Value> ValArray;
 
 
     struct SolveToCallback;
     struct EliminateCallback;
     struct MinimizeCallback;
-
-
-    class matrix_parse_error : public std::runtime_error
-    {
-    public:
-        using runtime_error::runtime_error;
-    };
-
-    class matrix_size_error : public std::runtime_error
-    {
-    public:
-        using runtime_error::runtime_error;
-    };
 
 
     // Minimization problem
@@ -114,6 +106,7 @@ namespace fm
         Vector() = default;
     public:
         explicit Vector(size_t size);
+        Vector(ValArray);
 
         // enable move semantics
         Vector(Vector&&) = default;
@@ -149,8 +142,6 @@ namespace fm
 
     Vector scaled_addition(const Vector& v0, Value s0,
                            const Vector& v1, Value s1);
-    ValArray scaled_addition(const ValArray& v0, Value s0,
-                             const ValArray& v1, Value s1);
 
     size_t num_elemental_inequalities(size_t num_vars);
     fm::System elemental_inequalities(size_t num_vars);
@@ -163,9 +154,9 @@ namespace fm
     Problem problem(const Matrix& m, int num_vars);
     Matrix minimize_system(const Matrix& sys);
 
-    fm::Vector parse_vector(std::string line);
-    Matrix parse_matrix(const std::vector<std::string>& lines);
 
+    Vector parse_vector(std::string line);
+    Matrix parse_matrix(const std::vector<std::string>& lines);
 
     // status/control callbacks
 
