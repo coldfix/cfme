@@ -18,7 +18,7 @@ BIN = \
 all: $(addprefix bin/,$(BIN))
 
 
-bin/%: %.o fm.o util.o
+bin/%: %.o fm.o lp.o util.o
 	./generate_git_info.sh >git_info.cpp
 	g++ $(LFLAGS) $^ git_info.cpp -o $@
 

@@ -102,7 +102,7 @@ int count_nontrivial(const fm::System& a, const fm::Matrix& b)
     int count = 0;
     fm::Problem lp = a.problem();
     for (auto&& v : b) {
-        count += !lp.is_redundant(v);
+        count += !lp.is_redundant(v.values);
     }
     return count;
 }
@@ -137,7 +137,7 @@ struct Result
     void add(fm::Matrix m)
     {
         for (auto&& v : m) {
-            discovery.add_inequality(v.copy());
+            discovery.add_inequality(v.values);
         }
         fm::minimize{discovery}.run();
 

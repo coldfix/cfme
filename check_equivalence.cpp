@@ -35,9 +35,9 @@ Matrix unimplied(const Matrix& a, const Matrix& b)
                 "systems must not differ in size");
         num_vars = num_vars_a;
     }
-    fm::Problem lp = problem(a, num_vars);
+    lp::Problem lp = problem(a, num_vars);
     for (auto&& v : b) {
-        if (!lp.is_redundant(v)) {
+        if (!lp.is_redundant(v.values)) {
             r.push_back(v.copy());
         }
     }

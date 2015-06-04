@@ -105,8 +105,8 @@ void merge(fm::System& s, fm::Matrix& m, const fm::IO& io)
 {
     fm::Problem lp = s.problem();
     for (auto&& v : m) {
-        if (!lp.is_redundant(v)) {
-            lp.add_inequality(v);
+        if (!lp.is_redundant(v.values)) {
+            lp.add_inequality(v.values);
             s.add_inequality(move(v));
         }
     }
@@ -120,7 +120,7 @@ int count_nontrivial(const fm::System& a, const fm::Matrix& b)
     int count = 0;
     fm::Problem lp = a.problem();
     for (auto&& v : b) {
-        count += !lp.is_redundant(v);
+        count += !lp.is_redundant(v.values);
     }
     return count;
 }

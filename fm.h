@@ -4,19 +4,18 @@
 #ifndef __FM_H__INCLUDED__
 #define __FM_H__INCLUDED__
 
-# include <cmath>       // INFINITY
 # include <iostream>
 # include <memory>      // shared_ptr
 # include <valarray>
 # include <vector>
 
+# include "lp.h"
 # include "linalg.h"
 
 # define EMPTY(type) { return type(); }
 
 
 // External
-struct glp_prob;
 namespace terminal { class Input; }
 
 
@@ -28,6 +27,7 @@ namespace fm
     template <class T> using P = std::shared_ptr<T>;
     template <class T> using Vec = la::Vector<T>;
     template <class T> using Mat = la::Matrix<T>;
+    using lp::Problem;
 
     // helper
     typedef P<void> ScopeGuard, SG;
@@ -44,38 +44,6 @@ namespace fm
     struct SolveToCallback;
     struct EliminateCallback;
     struct MinimizeCallback;
-
-
-    enum Status {
-        UNDEF=1,/* solution is undefined */
-        FEAS,   /* solution is feasible */
-        INFEAS, /* solution is infeasible */
-        NOFEAS, /* no feasible solution exists */
-        OPT,    /* solution is optimal */
-        UNBND,  /* solution is unbounded */
-    };
-
-    // Minimization problem
-    class Problem
-    {
-        P<glp_prob> prob;
-
-        void set_mat_row(int i, const Vector&);
-    public:
-        size_t num_cols;
-
-        Problem();
-        explicit Problem(size_t num_cols);
-
-        void add_equality(const Vector&, double rhs=0.0);
-        void add_inequality(const Vector&, double lb=0.0, double ub=INFINITY);
-        void del_row(int i);
-
-        bool is_redundant(const Vector&) const;
-        bool dual(const Vector&, std::vector<double>&) const;
-
-        Status simplex(const Vec<double>&, Vec<double>* o=nullptr) const;
-    };
 
 
     class System

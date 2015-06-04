@@ -82,7 +82,7 @@ try
     cerr << " - Search for false positives" << endl;
     bool consistent = true;
     for (auto&& v : system.ineqs) {
-        if (!orig_lp.is_redundant(v.injection(orig_lp.num_cols))) {
+        if (!orig_lp.is_redundant(v.injection(orig_lp.num_cols).values)) {
             cerr << "   FALSE: " << v << endl;
             consistent = false;
         }
@@ -90,7 +90,7 @@ try
     cerr << " - Search for undiscovered elemental inequalities" << endl;
     fm::Problem sys_prob = system.problem();
     for (auto&& v : target.ineqs) {
-        if (!sys_prob.is_redundant(v)) {
+        if (!sys_prob.is_redundant(v.values)) {
             cerr << "   UNDISCOVERED: " << v << endl;
             consistent = false;
         }
@@ -105,9 +105,9 @@ try
     cerr << "Filtering non-trivial inequalities." << endl;
     fm::Problem tgt_prob = target.problem();
     for (auto&& v : system.ineqs) {
-        if (tgt_prob.is_redundant(v))
+        if (tgt_prob.is_redundant(v.values))
             continue;
-        tgt_prob.add_inequality(v.copy());
+        tgt_prob.add_inequality(v.values);
         non_trivial.push_back(v.copy());
     }
     cerr << endl;
