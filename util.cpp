@@ -104,6 +104,23 @@ string util::join(const std::vector<string>& v, const string& sep)
     return result;
 }
 
+string util::trim(string s)
+{
+    int beg = s.find_first_not_of(" \t");
+    int end = s.find_last_not_of(" \t");
+    if (beg == -1)
+        return string();
+    return s.substr(beg, end-beg+1);
+}
+
+string util::remove_comment(string s)
+{
+    int beg = s.find('#');
+    if (beg == -1)
+        return s;
+    return s.substr(0, beg);
+}
+
 std::vector<std::string> util::read_file(std::istream& in)
 {
     std::vector<string> lines;

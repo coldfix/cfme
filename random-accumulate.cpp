@@ -83,9 +83,9 @@ fm::Matrix random_elimination(fm::System system, int num_drop,
                               seconds timelimit, const fm::IO& io)
 {
     fm::Matrix& matrix = system.ineqs;
-    size_t num_vars = matrix[0].size();
-    size_t width = intlog2(num_vars)/2;
-    size_t solve_to = 1<<width;
+    int num_vars = matrix[0].size();
+    int width = intlog2(num_vars)/2;
+    int solve_to = 1<<width;
 
     std::random_device rd;
     std::default_random_engine random_engine(rd());
@@ -105,8 +105,8 @@ void merge(fm::System& s, fm::Matrix& m, const fm::IO& io)
 {
     fm::Problem lp = s.problem();
     for (auto&& v : m) {
-        if (!lp.is_redundant(v)) {
-            lp.add_inequality(v);
+        if (!lp.is_redundant(v.values)) {
+            lp.add_inequality(v.values);
             s.add_inequality(move(v));
         }
     }
@@ -120,7 +120,7 @@ int count_nontrivial(const fm::System& a, const fm::Matrix& b)
     int count = 0;
     fm::Problem lp = a.problem();
     for (auto&& v : b) {
-        count += !lp.is_redundant(v);
+        count += !lp.is_redundant(v.values);
     }
     return count;
 }
@@ -137,7 +137,7 @@ try
 
     fm::IO io(&cerr);
 
-    size_t num_drop = atol(argv[1]);;
+    int num_drop = atol(argv[1]);;
     fm::System init_state = fm::parse_matrix(util::read_file(argv[2]));
     seconds timelimit(5*60);
 

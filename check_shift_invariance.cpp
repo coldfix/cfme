@@ -47,7 +47,7 @@ bool check_shift_invariance(const fm::System& sys)
             // unique. Any of the shifted variants of an inequality might be
             // removed while still being valid. Therefore, it's insufficient
             // to just search for the vector. An LP must be solved instead:
-            if (!lp.is_redundant(vec)) {
+            if (!lp.is_redundant(vec.values)) {
                 missing_shifts.push_back(shift);
                 success = false;
             }

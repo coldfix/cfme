@@ -1,16 +1,8 @@
 // Basic Fourier-Motzkin C++ API (eliminates variables from a system of
 // inequalities).
 
-
-#include <algorithm>    // copy
-#include <cassert>
-#include <cmath>
 #include <iomanip>      // setw
-#include <iterator>     // istream_iterator, back_inserter
 #include <utility>      // move
-#include <functional>   // bind
-
-#include <glpk.h>
 
 #include "number.h"
 #include "fm.h"
@@ -28,107 +20,6 @@ using std::ostream;
 
 namespace fm
 {
-
-    // class Problem
-
-    Problem::Problem()
-    {
-    }
-
-    Problem::Problem(size_t nb_cols)
-        : num_cols(nb_cols)
-    {
-        prob.reset(glp_create_prob(), glp_delete_prob);
-        glp_set_obj_dir(prob.get(), GLP_MIN);
-        glp_add_cols(prob.get(), num_cols-1);
-        for (int j = 1; j < num_cols; ++j) {
-            glp_set_col_bnds(prob.get(), j, GLP_FR, NAN, NAN);
-        }
-    }
-
-    void Problem::set_mat_row(int i, const Vector& v)
-    {
-        std::vector<int> indices;
-        std::vector<double> values;
-        indices.reserve(v.size());
-        values.reserve(v.size());
-        indices.push_back(0);       // ind[0] is not used by GLPK
-        values.push_back(NAN);      // val[0] is not used by GLPK
-        for (int i = 1; i < v.size(); ++i) {
-            Value val = v.get(i);
-            if (val) {
-                indices.push_back(i);
-                values.push_back(val);
-            }
-        }
-        glp_set_mat_row(prob.get(), i,
-                indices.size()-1, indices.data(), values.data());
-    }
-
-    void Problem::add_equality(const Vector& v)
-    {
-        int i = glp_add_rows(prob.get(), 1);
-        glp_set_row_bnds(prob.get(), i, GLP_FX, 0.0, 0.0);
-        set_mat_row(i, v);
-    }
-
-    void Problem::add_inequality(const Vector& v)
-    {
-        int i = glp_add_rows(prob.get(), 1);
-        glp_set_row_bnds(prob.get(), i, GLP_LO, 0.0, NAN);
-        set_mat_row(i, v);
-    }
-
-    void Problem::del_row(int i)
-    {
-        glp_del_rows(prob.get(), 1, (&i)-1);
-    }
-
-    bool Problem::is_redundant(const Vector& v) const
-    {
-        assert(v.size() == num_cols);
-        for (int i = 1; i < num_cols; ++i) {
-            glp_set_obj_coef(prob.get(), i, v.get(i));
-        }
-        glp_std_basis(prob.get());
-        glp_smcp parm;
-        glp_init_smcp(&parm);
-        parm.msg_lev = GLP_MSG_ERR;
-        int result = glp_simplex(prob.get(), &parm);
-        if (result != 0) {
-            throw std::runtime_error("Error in glp_simplex.");
-        }
-        return glp_get_status(prob.get()) == GLP_OPT;
-    }
-
-    bool Problem::dual(const Vector& v, std::vector<double>& r) const
-    {
-        assert(v.size() == num_cols);
-        glp_prob* lp = prob.get();
-        for (int i = 1; i < num_cols; ++i) {
-            glp_set_obj_coef(lp, i, v.get(i));
-        }
-        glp_std_basis(lp);
-        glp_smcp parm;
-        glp_init_smcp(&parm);
-        parm.msg_lev = GLP_MSG_ERR;
-        parm.meth = GLP_DUAL;
-        int result = glp_simplex(lp, &parm);
-        if (result != 0) {
-            throw std::runtime_error("Error in glp_simplex.");
-        }
-        int status = glp_get_dual_stat(lp);
-        if (status != GLP_FEAS) {
-            return false;
-        }
-        int rows = glp_get_num_rows(lp);
-        r.clear();
-        r.resize(rows);
-        for (int i = 0; i < rows; ++i) {
-            r[i] = glp_get_row_dual(lp, i+1);
-        }
-        return true;
-    }
 
     // class System
 
@@ -161,7 +52,7 @@ namespace fm
 
     void System::add_equality(Vector&& vec)
     {
-        assert(vec.size() == num_cols);
+        _assert<la::size_error>(vec.size() == num_cols);
         if (vec.empty())
             return;
         ineqs.push_back(vec.copy());
@@ -171,7 +62,7 @@ namespace fm
 
     void System::add_inequality(Vector&& vec)
     {
-        assert(vec.size() == num_cols);
+        _assert<la::size_error>(vec.size() == num_cols);
         if (vec.empty())
             return;
         ineqs.push_back(move(vec));
@@ -181,7 +72,7 @@ namespace fm
     {
         Problem lp(num_cols);
         for (auto&& vec : ineqs) {
-            lp.add_inequality(vec);
+            lp.add_inequality(vec.values);
         }
         return lp;
     }
@@ -190,6 +81,11 @@ namespace fm
 
     Vector::Vector(size_t size)
         : values(size)
+    {
+    }
+
+    Vector::Vector(ValArray v)
+        : values(move(v))
     {
     }
 
@@ -269,7 +165,7 @@ namespace fm
 
     Vector Vector::injection(size_t dim, size_t shift) const
     {
-        assert(dim >= size()<<shift);
+        _assert<la::size_error>(dim >= size()<<shift);
         Vector r(dim);
         for (size_t i = 0; i < size(); ++i) {
             r.set(i<<shift, get(i));
@@ -283,15 +179,8 @@ namespace fm
                            const Vector& v1, Value s1)
     {
         Vector r;
-        r.values = scaled_addition(v0.values, s0, v1.values, s1);
+        r.values = la::scaled_addition(v0.values, s0, v1.values, s1);
         return r;
-    }
-
-    ValArray scaled_addition(const ValArray& v0, Value s0,
-                             const ValArray& v1, Value s1)
-    {
-        assert(v0.size() == v1.size());
-        return v0 * s0 + v1 * s1;
     }
 
     ostream& operator << (ostream& o, const System& s)
@@ -304,23 +193,12 @@ namespace fm
 
     ostream& operator << (ostream& o, const Vector& v)
     {
-        o << "[ ";
-        for (auto val : v.values) {
-            o << setw(3) << val << ' ';
-        }
-        o << "]";
-        return o;
+        return la::print_vector(o, v.values);
     }
 
     bool operator == (const Vector& a, const Vector& b)
     {
-        assert(a.size() == b.size());
-        for (int i = 0; i < a.size(); ++i) {
-            if (a.get(i) != b.get(i)) {
-                return false;
-            }
-        }
-        return true;
+        return la::equal(a.values, b.values);
     }
 
 //----------------------------------------
@@ -460,7 +338,7 @@ int get_num_cols(const Matrix& matrix)
         return -1;
     int size = matrix[0].size();
     for (auto&& v : matrix) {
-        _assert<matrix_size_error>(v.size() == size,
+        _assert<la::size_error>(v.size() == size,
                 "size does not match", v.copy());
     }
     return size;
@@ -471,7 +349,7 @@ int get_num_vars(const Matrix& matrix)
     int size = get_num_cols(matrix);
     if (size == -1)
         return -1;
-    _assert<matrix_size_error>(is_power_of_2(size),
+    _assert<la::size_error>(is_power_of_2(size),
             "size must be power of 2", size);
     return intlog2(size);
 }
@@ -489,7 +367,7 @@ Problem problem(const Matrix& m, int num_vars)
     fm::System sys(m.size(), 1<<num_vars);
     fm::Problem lp = sys.problem();
     for (auto&& v : m)
-        lp.add_inequality(v.copy());
+        lp.add_inequality(v.values);
     return lp;
 }
 
@@ -502,55 +380,24 @@ Matrix minimize_system(const Matrix& sys)
         Vector v = move(r[i]);
         r.erase(r.begin() + i);
         Problem lp = problem(r, num_vars);
-        if (!lp.is_redundant(v))
+        if (!lp.is_redundant(v.values))
             r.insert(r.begin() + i, move(v));
     }
     return r;
 }
 
-string trim(string s)
-{
-    int beg = s.find_first_not_of(" \t");
-    int end = s.find_last_not_of(" \t");
-    if (beg == -1)
-        return string();
-    return s.substr(beg, end-beg+1);
-}
-
-string remove_comment(string s)
-{
-    int beg = s.find('#');
-    if (beg == -1)
-        return s;
-    return s.substr(0, beg);
-}
-
 Vector parse_vector(string line)
 {
-    typedef std::istream_iterator<int> iit;
-    _assert<matrix_parse_error>(line.front() == '[', "expecting '['", line);
-    _assert<matrix_parse_error>(line.back() == ']', "expecting ']'", line);
-    line = trim(line.substr(1, line.size()-2));
-    std::istringstream in(line);
-    vector<int> vals;
-    copy(iit(in), iit(), std::back_inserter(vals));
-    Vector r(vals.size());
-    copy(vals.begin(), vals.end(), begin(r.values));
-    return r;
+    return la::parse_vector<Value>(line);
 }
 
 Matrix parse_matrix(const vector<string>& lines)
 {
-    Matrix r;
-    for (string line : lines) {
-        line = remove_comment(line);
-        line = trim(line);
-        if (line.empty())
-            continue;
-        r.push_back(parse_vector(line));
+    Matrix m;
+    for (auto&& v : la::parse_matrix<Value>(lines)) {
+        m.push_back(move(v));
     }
-    get_num_cols(r);
-    return r;
+    return m;
 }
 
 
@@ -632,8 +479,8 @@ void eliminate::run(const eliminate::Callback& cb)
         for (auto&& n : neg) {
             auto _check = cb.start_check(i++);
             Vector v = p.eliminate(n, index);
-            if (!lp.is_redundant(v)) {
-                lp.add_inequality(v);
+            if (!lp.is_redundant(v.values)) {
+                lp.add_inequality(v.values);
                 s.add_inequality(move(v));
             }
         }
@@ -649,11 +496,11 @@ void minimize::run(const minimize::Callback& cb)
     for (int i = sys.ineqs.size()-1; i >= 0; --i) {
         auto sg = cb.start_round(i);
         lp.del_row(i+1);
-        if (lp.is_redundant(sys.ineqs[i])) {
+        if (lp.is_redundant(sys.ineqs[i].values)) {
             sys.ineqs.erase(sys.ineqs.begin() + i);
         }
         else {
-            lp.add_inequality(sys.ineqs[i]);
+            lp.add_inequality(sys.ineqs[i].values);
         }
     }
 }
