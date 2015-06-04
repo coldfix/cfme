@@ -1,3 +1,5 @@
+#ifndef __LINALG_H__INCLUDED__
+#define __LINALG_H__INCLUDED__
 
 # include <algorithm>   // copy
 # include <iterator>    // istream_iterator, back_inserter
@@ -169,3 +171,5 @@ namespace la
     }
 
 }
+
+#endif // include guard
