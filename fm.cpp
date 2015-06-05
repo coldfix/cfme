@@ -52,7 +52,7 @@ namespace fm
 
     void System::add_equality(Vector&& vec)
     {
-        _assert<la::size_error>(vec.size() == num_cols);
+        assert_eq_size(vec.size(), num_cols);
         if (vec.empty())
             return;
         ineqs.push_back(vec.copy());
@@ -62,7 +62,7 @@ namespace fm
 
     void System::add_inequality(Vector&& vec)
     {
-        _assert<la::size_error>(vec.size() == num_cols);
+        assert_eq_size(vec.size(), num_cols);
         if (vec.empty())
             return;
         ineqs.push_back(move(vec));
@@ -165,7 +165,7 @@ namespace fm
 
     Vector Vector::injection(size_t dim, size_t shift) const
     {
-        _assert<la::size_error>(dim >= size()<<shift);
+        _assert(dim >= size()<<shift, size_error);
         Vector r(dim);
         for (size_t i = 0; i < size(); ++i) {
             r.set(i<<shift, get(i));
@@ -338,8 +338,7 @@ int get_num_cols(const Matrix& matrix)
         return -1;
     int size = matrix[0].size();
     for (auto&& v : matrix) {
-        _assert<la::size_error>(v.size() == size,
-                "size does not match", v.copy());
+        assert_eq_size(v.size(), size);
     }
     return size;
 }
@@ -349,8 +348,7 @@ int get_num_vars(const Matrix& matrix)
     int size = get_num_cols(matrix);
     if (size == -1)
         return -1;
-    _assert<la::size_error>(is_power_of_2(size),
-            "size must be power of 2", size);
+    _assert(is_power_of_2(size), size_error, size);
     return intlog2(size);
 }
 

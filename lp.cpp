@@ -78,7 +78,7 @@ namespace lp
 
     Status Problem::simplex(const Vector& v, Vector* o) const
     {
-        _assert<la::size_error>(v.size() == num_cols);
+        assert_eq_size(v.size(), num_cols);
         for (int i = 1; i < num_cols; ++i) {
             glp_set_obj_coef(prob.get(), i, v[i]);
         }
@@ -104,8 +104,8 @@ namespace lp
     {
         glp_prob* lp = prob.get();
         int num_rows = glp_get_num_rows(lp);;
-        _assert<la::size_error>(v.size() == num_cols);
-        _assert<la::size_error>(r.size() == num_rows);
+        assert_eq_size(v.size(), num_cols);
+        assert_eq_size(r.size(), num_rows);
         for (int i = 1; i < num_cols; ++i) {
             glp_set_obj_coef(lp, i, v[i]);
         }

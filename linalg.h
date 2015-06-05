@@ -4,29 +4,16 @@
 # include <algorithm>   // copy
 # include <iterator>    // istream_iterator, back_inserter
 # include <iostream>
-# include <stdexcept>   // runtime_error
 # include <string>
 # include <sstream>     // istringstream
 # include <valarray>
 # include <vector>
 
-# include "error.h"     // _assert
+# include "error.h"     // _assert, parse_error, size_error
 
 
 namespace la
 {
-
-    class parse_error : public std::runtime_error
-    {
-    public:
-        using runtime_error::runtime_error;
-    };
-
-    class size_error : public std::runtime_error
-    {
-    public:
-        using runtime_error::runtime_error;
-    };
 
     template <class T> using Vector = std::valarray<T>;
     template <class T> using Matrix = std::vector<Vector<T>>;
@@ -35,8 +22,8 @@ namespace la
     Vector<T> parse_vector(std::string line)
     {
         typedef std::istream_iterator<T> iit;
-        _assert<parse_error>(line.front() == '[', "expecting '['", line);
-        _assert<parse_error>(line.back() == ']', "expecting ']'", line);
+        assert_eq(line.front(), '[', parse_error, "expecting '['", line);
+        assert_eq(line.back(), ']', parse_error, "expecting ']'", line);
         line = util::trim(line.substr(1, line.size()-2));
         std::istringstream in(line);
         std::vector<T> vals;
@@ -95,14 +82,14 @@ namespace la
     Vector<T> scaled_addition(const Vector<T>& v0, T s0,
                               const Vector<T>& v1, T s1)
     {
-        _assert<size_error>(v0.size() == v1.size());
+        assert_eq_size(v0.size(), v1.size());
         return v0 * s0 + v1 * s1;
     }
 
     template <class T>
     bool equal(const Vector<T>& a, const Vector<T>& b)
     {
-        _assert<size_error>(a.size() == b.size());
+        assert_eq_size(a.size(), b.size());
         for (int i = 0; i < a.size(); ++i) {
             if (a[i] != b[i]) {
                 return false;
@@ -120,7 +107,7 @@ namespace la
     template <class T>
     int num_cols(const Matrix<T>& M)
     {
-        _assert<size_error>(!M.empty());
+        _assert(!M.empty(), size_error);
         return M[0].size();
     }
 
@@ -144,7 +131,7 @@ namespace la
     {
         int nr = num_rows(M);
         int nc = num_cols(M);
-        _assert<size_error>(nc == v.size());
+        assert_eq_size(nc, v.size());
         Vector<T> r(nr);
         for (int i = 0; i < nr; ++i) {
             for (int j = 0; j < nc; ++j) {
@@ -160,7 +147,7 @@ namespace la
     {
         int nr = num_rows(M);
         int nc = num_cols(M);
-        _assert<size_error>(nr == v.size());
+        assert_eq_size(nr, v.size());
         Vector<T> r(nc);
         for (int i = 0; i < nc; ++i) {
             for (int j = 0; j < nr; ++j) {

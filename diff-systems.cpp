@@ -30,8 +30,7 @@ Matrix missing_rows(const Matrix& a, const Matrix& b)
         num_vars = num_vars_a;
     }
     else {
-        _assert<la::size_error>(num_vars_a == num_vars_b,
-                "systems must not differ in size");
+        assert_eq_size(num_vars_a, num_vars_b);
         num_vars = num_vars_a;
     }
     fm::Problem lp = problem(a, num_vars);
