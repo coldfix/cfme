@@ -13,6 +13,7 @@ BIN = \
 	  random \
 	  random-accumulate \
 	  elemental-inequalities \
+	  lpdual \
 
 
 CPP = $(filter-out git_info.cpp,$(wildcard *.cpp))

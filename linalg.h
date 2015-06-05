@@ -58,6 +58,14 @@ namespace la
     }
 
     template <class T>
+    Vector<T> basis_vector(int size, int axis, T value=1)
+    {
+        Vector<T> v(size);
+        v[axis] = value;
+        return v;
+    }
+
+    template <class T>
     std::ostream& print_vector(std::ostream& out, const Vector<T>& vec)
     {
         out << "[ ";
@@ -153,6 +161,28 @@ namespace la
             for (int j = 0; j < nr; ++j) {
                 r[i] +=  v[j] * M[j][i];
             }
+        }
+        return r;
+    }
+
+    template <class T>
+    Vector<T> embed(const Vector<T>& v, int dim, int shift=0)
+    {
+        _assert(dim >= v.size()+shift, size_error);
+        Vector<T> r(dim);
+        for (int i = 0; i < v.size(); ++i) {
+            r[i+shift] = v[i];
+        }
+        return r;
+    }
+
+
+    template <class T>
+    Vector<T> project(const Vector<T>& v, int dim_to, int dim_from=0)
+    {
+        Vector<T> r(dim_to - dim_from);
+        for (int i = 0; i < r.size(); ++i) {
+            r[i] = v[i+dim_from];
         }
         return r;
     }
