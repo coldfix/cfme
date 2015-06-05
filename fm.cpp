@@ -493,7 +493,7 @@ void minimize::run(const minimize::Callback& cb)
     fm::Problem lp = sys.problem();
     for (int i = sys.ineqs.size()-1; i >= 0; --i) {
         auto sg = cb.start_round(i);
-        lp.del_row(i+1);
+        lp.del_row(i);
         if (lp.is_redundant(sys.ineqs[i].values)) {
             sys.ineqs.erase(sys.ineqs.begin() + i);
         }

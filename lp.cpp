@@ -7,6 +7,9 @@
 namespace lp
 {
 
+    // Always use zero based indices for all local variables and parameters
+    // right until passing them to GLPK.
+
     Problem::Problem()
     {
     }
@@ -16,9 +19,9 @@ namespace lp
     {
         prob.reset(glp_create_prob(), glp_delete_prob);
         glp_set_obj_dir(prob.get(), GLP_MIN);
-        glp_add_cols(prob.get(), num_cols-1);
-        for (int j = 1; j < num_cols; ++j) {
-            glp_set_col_bnds(prob.get(), j, GLP_FR, NAN, NAN);
+        glp_add_cols(prob.get(), num_cols);
+        for (int j = 0; j < num_cols; ++j) {
+            glp_set_col_bnds(prob.get(), j+1, GLP_FR, NAN, NAN);
         }
     }
 
@@ -28,47 +31,45 @@ namespace lp
         std::vector<double> values;
         indices.reserve(v.size());
         values.reserve(v.size());
-        indices.push_back(0);       // ind[0] is not used by GLPK
-        values.push_back(NAN);      // val[0] is not used by GLPK
-        for (int i = 1; i < v.size(); ++i) {
-            double val = v[i];
+        for (int j = 0; j < v.size(); ++j) {
+            double val = v[j];
             if (val) {
-                indices.push_back(i);
+                indices.push_back(j+1);
                 values.push_back(val);
             }
         }
-        glp_set_mat_row(prob.get(), i,
-                indices.size()-1, indices.data(), values.data());
+        glp_set_mat_row(prob.get(), i+1,
+                indices.size(), indices.data()-1, values.data()-1);
     }
 
     void Problem::add_equality(const Vector& v, double rhs)
     {
-        int i = glp_add_rows(prob.get(), 1);
+        int i = glp_add_rows(prob.get(), 1)-1;
         glp_set_row_bnds(prob.get(), i, GLP_FX, rhs, rhs);
         set_mat_row(i, v);
     }
 
     void Problem::add_inequality(const Vector& v, double lb, double ub)
     {
-        int i = glp_add_rows(prob.get(), 1);
+        int i = glp_add_rows(prob.get(), 1)-1;
         if (lb == -INFINITY && ub == INFINITY) {
-            glp_set_row_bnds(prob.get(), i, GLP_FR, NAN, NAN);
+            glp_set_row_bnds(prob.get(), i+1, GLP_FR, NAN, NAN);
         }
         else if (lb > -INFINITY && ub == INFINITY) {
-            glp_set_row_bnds(prob.get(), i, GLP_LO, lb, NAN);
+            glp_set_row_bnds(prob.get(), i+1, GLP_LO, lb, NAN);
         }
         else if (lb == -INFINITY && ub < INFINITY) {
-            glp_set_row_bnds(prob.get(), i, GLP_LO, NAN, ub);
+            glp_set_row_bnds(prob.get(), i+1, GLP_LO, NAN, ub);
         }
         else {
-            glp_set_row_bnds(prob.get(), i, GLP_DB, lb, ub);
+            glp_set_row_bnds(prob.get(), i+1, GLP_DB, lb, ub);
         }
         set_mat_row(i, v);
     }
 
     void Problem::del_row(int i)
     {
-        glp_del_rows(prob.get(), 1, (&i)-1);
+        glp_del_rows(prob.get(), 1, (&++i)-1);
     }
 
     bool Problem::is_redundant(const Vector& v) const
@@ -79,8 +80,8 @@ namespace lp
     Status Problem::simplex(const Vector& v, Vector* o) const
     {
         assert_eq_size(v.size(), num_cols);
-        for (int i = 1; i < num_cols; ++i) {
-            glp_set_obj_coef(prob.get(), i, v[i]);
+        for (int i = 0; i < num_cols; ++i) {
+            glp_set_obj_coef(prob.get(), i+1, v[i]);
         }
         glp_std_basis(prob.get());
         glp_smcp parm;
@@ -93,8 +94,8 @@ namespace lp
 
         int status = glp_get_status(prob.get());
         if (status == GLP_OPT && o) {
-            for (int i = 1; i < o->size(); ++i) {
-                (*o)[i] = glp_get_col_prim(prob.get(), i);
+            for (int i = 0; i < o->size(); ++i) {
+                (*o)[i] = glp_get_col_prim(prob.get(), i+1);
             }
         }
         return (Status) status;
@@ -106,8 +107,8 @@ namespace lp
         int num_rows = glp_get_num_rows(lp);;
         assert_eq_size(v.size(), num_cols);
         assert_eq_size(r.size(), num_rows);
-        for (int i = 1; i < num_cols; ++i) {
-            glp_set_obj_coef(lp, i, v[i]);
+        for (int i = 0; i < num_cols; ++i) {
+            glp_set_obj_coef(lp, i+1, v[i]);
         }
         glp_std_basis(lp);
         glp_smcp parm;

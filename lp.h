@@ -25,6 +25,8 @@ namespace lp
     };
 
     // Linear minimization problem
+    //
+    // all index arguments are zero based
     class Problem
     {
         P<glp_prob> prob;
