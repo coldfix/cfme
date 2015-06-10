@@ -22,11 +22,13 @@ namespace la
     Vector<T> parse_vector(std::string line)
     {
         typedef std::istream_iterator<T> iit;
-        assert_eq(line.front(), '[', parse_error, "expecting '['", line);
-        assert_eq(line.back(), ']', parse_error, "expecting ']'", line);
-        line = util::trim(line.substr(1, line.size()-2));
-        std::istringstream in(line);
+        // backward compatibility for now (remove this later…):
+        if (line.front() == '[') {
+            assert_eq(line.back(), ']', parse_error, "expecting ']'", line);
+            line = util::trim(line.substr(1, line.size()-2));
+        }
         std::vector<T> vals;
+        std::istringstream in(line);
         std::copy(iit(in), iit(), std::back_inserter(vals));
         Vector<T> r(vals.size());
         std::copy(vals.begin(), vals.end(), std::begin(r));
@@ -68,12 +70,10 @@ namespace la
     template <class T>
     std::ostream& print_vector(std::ostream& out, const Vector<T>& vec)
     {
-        out << "[ ";
         for (auto val : vec) {
             out.width(3);
             out << val << ' ';
         }
-        out << "]";
         return out;
     }
 
