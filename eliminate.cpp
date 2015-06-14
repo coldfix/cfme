@@ -73,10 +73,6 @@ try
         << " elemental inequalities.\n"
         << endl;
 
-    // used to remove inequalities implied by elemental inequalities on
-    // the reduced space:
-    fm::System target = fm::elemental_inequalities(width);
-
     // consistency checks
     cerr << "Perform consistency checks: " << endl;
     cerr << " - Search for false positives" << endl;
@@ -87,30 +83,10 @@ try
             consistent = false;
         }
     }
-    cerr << " - Search for undiscovered elemental inequalities" << endl;
-    fm::Problem sys_prob = system.problem();
-    for (auto&& v : target.ineqs) {
-        if (!sys_prob.is_redundant(v.values)) {
-            cerr << "   UNDISCOVERED: " << v << endl;
-            consistent = false;
-        }
-    }
     cerr << endl;
     if (!consistent) {
         return 1;
     }
-
-    // enumerate non-trivial constraints
-    fm::Matrix non_trivial;
-    cerr << "Filtering non-trivial inequalities." << endl;
-    fm::Problem tgt_prob = target.problem();
-    for (auto&& v : system.ineqs) {
-        if (tgt_prob.is_redundant(v.values))
-            continue;
-        tgt_prob.add_inequality(v.values);
-        non_trivial.push_back(v.copy());
-    }
-    cerr << endl;
 
     cout << gen.str() << endl;
     cout << "\n# Elimination order:";
@@ -121,8 +97,6 @@ try
         cout << ' ' << std::setw(3) << recorded_order[i];
     }
     cout << "\n" << endl;
-
-    system.ineqs = move(non_trivial);
     cout << system << endl;
 
     return 0;
