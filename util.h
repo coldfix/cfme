@@ -76,6 +76,15 @@ namespace util
         return out.str();
     }
 
+    template <class ...T>
+    std::string join(std::string sep, T... t)
+    {
+        std::string r = sprint_all(sprint_all(std::move(t), sep)...);
+        if (!r.empty()) {
+            r.pop_back();
+        }
+        return r;
+    }
 
     template <class T>
     void extend(std::vector<T>& a, const std::vector<T>& b)

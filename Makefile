@@ -13,13 +13,18 @@ BIN = \
 	  random \
 	  random-accumulate \
 	  elemental-inequalities \
+	  lpdual \
 
 
-all: $(addprefix bin/,$(BIN))
+CPP = $(filter-out git_info.cpp,$(wildcard *.cpp))
+OBJ = $(CPP:.cpp=.o)
+
+
+all: $(OBJ) $(addprefix bin/,$(BIN))
 
 
 bin/%: %.o fm.o lp.o util.o
-	./generate_git_info.sh >git_info.cpp
+	@./generate_git_info.sh >git_info.cpp
 	g++ $(LFLAGS) $^ git_info.cpp -o $@
 
 %.o: %.cpp
