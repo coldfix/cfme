@@ -562,7 +562,7 @@ SG EliminateStatusOutput::start_append(int z, int p, int n) const
 {
     terminal::clear_current_line(*out);
     *out << "   i = " << setw(3) << sys->num_cols
-        << ",  num_ineqs = " << setw(4) << z
+        << ",  z = " << setw(4) << z
         << ",  p+n = " << setw(3) << p+n
         << "   p*n = " << setw(4) << p*n
         << std::flush;
