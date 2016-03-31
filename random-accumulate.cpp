@@ -14,6 +14,7 @@
 #include <random>
 
 #include <boost/timer/timer.hpp>
+#include <boost/chrono/chrono.hpp>
 
 #include "fm.h"
 #include "util.h"
