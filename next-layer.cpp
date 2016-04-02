@@ -28,7 +28,7 @@ try
     util::AutogenNotice gen(argc, argv);
 
     fm::System system = fm::elemental_inequalities(num_vars);
-    fm::add_causal_constraints(system, width);
+    fm::add_causal_constraints(system, width, links);
 
     for (auto&& constraint : fm::parse_matrix(util::read_file(cin))) {
         system.add_inequality(constraint.injection(system.num_cols, width));

@@ -307,16 +307,19 @@ void set_initial_state_iid(System& s, size_t width)
 //
 //     A0  A1  A2  A3
 //       B0  B1  B2  B3
-void add_causal_constraints(System& s, size_t width)
+void add_causal_constraints(System& s, size_t width, size_t branches)
 {
     size_t dim = 1<<(2*width);
     size_t all = dim-1;
     // for each dependent variable i, add the conditional mutual
     // independence 0 = I(i:Nd(i)|Pa(i)):
     for (size_t i = 0; i < width; ++i) {
-        size_t j = (i+1) % width;
         size_t Var = 1<<i;
-        size_t Pa = (1<<(width+i)) | (1<<(width+j));
+        size_t Pa = 0;
+        for (size_t j = 0; j < branches; ++j) {
+            size_t k = (i+j) % width;
+            Pa |= 1<<(width+k);
+        }
         size_t Nd = all ^ (Var | Pa);
         Vector v(dim);
         v.set(Pa|Var, 1);
