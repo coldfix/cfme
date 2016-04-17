@@ -281,17 +281,18 @@ System elemental_inequalities(size_t num_vars)
 // Add mutual independence constraints for the initial layer of a CCA. The
 // variables of the initial layer are assumed to correspond to the most
 // signigicant bits of the entropy space index. The system must be created
-// with `num_vars=2*width` variables.
-void set_initial_state_iid(System& s, size_t width)
+// with `num_vars=offset+width` variables.
+// The last `width` variables are *initial state*.
+void set_initial_state_iid(System& s, size_t width, size_t offset)
 {
     if (width <= 1)
         return;
-    size_t dim = 1<<(2*width);
-    size_t layer1 = ((1<<width) - 1) << width;
+    size_t dim = 1<<(offset+width);
+    size_t layer1 = ((1<<width) - 1) << offset;
     Vector v(dim);
     v.set(layer1, -1);
     for (size_t cell = 0; cell < width; ++cell) {
-        size_t var = 1 << (width + cell);
+        size_t var = 1 << (offset + cell);
         v.set(var, 1);
     }
     s.add_equality(move(v));
@@ -305,20 +306,29 @@ void set_initial_state_iid(System& s, size_t width)
 //
 // The structure of the CCA is assumed to be hexagonal:
 //
+// width=4, cyclic=true:
+//
 //     A0  A1  A2  A3
 //       B0  B1  B2  B3
-void add_causal_constraints(System& s, size_t width, size_t branches)
+//
+// width=4, cyclic=false:
+//
+//     A0  A1  A2  A3
+//       B0  B1  B2
+void add_causal_constraints(System& s, size_t width, size_t branches, bool cyclic)
 {
-    size_t dim = 1<<(2*width);
+    size_t num_final = cyclic ? width : width-1;
+    size_t num_vars = width + num_final;
+    size_t dim = 1<<num_vars;
     size_t all = dim-1;
     // for each dependent variable i, add the conditional mutual
     // independence 0 = I(i:Nd(i)|Pa(i)):
-    for (size_t i = 0; i < width; ++i) {
+    for (size_t i = 0; i < num_final; ++i) {
         size_t Var = 1<<i;
         size_t Pa = 0;
         for (size_t j = 0; j < branches; ++j) {
             size_t k = (i+j) % width;
-            Pa |= 1<<(width+k);
+            Pa |= 1<<(num_final+k);
         }
         size_t Nd = all ^ (Var | Pa);
         Vector v(dim);

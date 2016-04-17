@@ -124,8 +124,8 @@ namespace fm
 
     size_t num_elemental_inequalities(size_t num_vars);
     fm::System elemental_inequalities(size_t num_vars);
-    void set_initial_state_iid(fm::System& s, size_t width);
-    void add_causal_constraints(fm::System& s, size_t width, size_t branches=2);
+    void set_initial_state_iid(fm::System& s, size_t width, size_t offset);
+    void add_causal_constraints(fm::System& s, size_t width, size_t branches=2, bool cyclic=true);
 
     int get_num_cols(const Matrix& matrix);
     int get_num_vars(const Matrix& matrix);
