@@ -16,7 +16,7 @@ using namespace std;
 
 int usage(int argc, char** argv)
 {
-    cerr << "Usage: " << argv[0] << " WIDTH [NUM_LINKS [--flat | --cyclic]" << endl;
+    cerr << "Usage: " << argv[0] << " WIDTH [NUM_LINKS [NUM_INIT]" << endl;
     return 1;
 }
 
@@ -28,31 +28,17 @@ try
         return usage(argc, argv);
     }
 
-    size_t width = atol(argv[1]);
-    size_t links = argc >= 3 ?  atol(argv[2]) : 2;
-    bool cyclic = true;
-
-    if (argc >= 4) {
-        if (argv[3] == string("--flat")) {
-            cyclic = false;
-        }
-        else if (argv[3] == string("--cyclic")) {
-            cyclic = true;
-        }
-        else {
-            return usage(argc, argv);
-        }
-    }
-
-    size_t num_final = cyclic ? width : width-links+1;
-    size_t num_vars = width + num_final;
+    size_t nf = atol(argv[1]);                  // num vars in final layer
+    size_t nl = argc >= 3 ? atol(argv[2]) : 2;  // num links for each variable
+    size_t ni = argc >= 4 ? atol(argv[3]) : nf; // num vars in initial layer
+    size_t num_vars = nf + ni;
 
     util::AutogenNotice gen(argc, argv);
 
     fm::System system = fm::elemental_inequalities(num_vars);
 
-    fm::set_initial_state_iid(system, width, num_final);
-    fm::add_causal_constraints(system, num_final, width, links);
+    fm::set_initial_state_iid(system, nf, ni);
+    fm::add_causal_constraints(system, nf, ni, nl);
     fm::minimize{system}.run(fm::MinimizeStatusOutput(&cerr));
 
     cout << gen.str() << endl;

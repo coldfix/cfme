@@ -280,19 +280,18 @@ System elemental_inequalities(size_t num_vars)
 
 // Add mutual independence constraints for the initial layer of a CCA. The
 // variables of the initial layer are assumed to correspond to the most
-// signigicant bits of the entropy space index. The system must be created
-// with `num_vars=offset+width` variables.
-// The last `width` variables are *initial state*.
-void set_initial_state_iid(System& s, size_t width, size_t offset)
+// signigicant bits of the entropy space index. The system must have been
+// created with `num_vars=nf+ni` variables.
+void set_initial_state_iid(System& s, size_t nf, size_t ni)
 {
-    if (width <= 1)
+    if (ni <= 1)
         return;
-    size_t dim = 1<<(offset+width);
-    size_t layer1 = ((1<<width) - 1) << offset;
+    size_t dim = 1<<(nf+ni);
+    size_t layer1 = ((1<<ni) - 1) << nf;
     Vector v(dim);
     v.set(layer1, -1);
-    for (size_t cell = 0; cell < width; ++cell) {
-        size_t var = 1 << (offset + cell);
+    for (size_t cell = 0; cell < ni; ++cell) {
+        size_t var = 1 << (nf + cell);
         v.set(var, 1);
     }
     s.add_equality(move(v));
@@ -315,18 +314,18 @@ void set_initial_state_iid(System& s, size_t width, size_t offset)
 //
 //     A0  A1  A2  A3
 //       B0  B1  B2
-void add_causal_constraints(System& s, size_t n_final, size_t n_init, size_t links)
+void add_causal_constraints(System& s, size_t nf, size_t ni, size_t links)
 {
-    size_t dim = 1<<(n_final+n_init);
+    size_t dim = 1<<(nf+ni);
     size_t all = dim-1;
     // for each dependent variable i, add the conditional mutual
     // independence 0 = I(i:Nd(i)|Pa(i)):
-    for (size_t i = 0; i < n_final; ++i) {
+    for (size_t i = 0; i < nf; ++i) {
         size_t Var = 1<<i;
         size_t Pa = 0;
         for (size_t j = 0; j < links; ++j) {
-            size_t k = (i+j) % n_init;
-            Pa |= 1<<(n_final+k);
+            size_t k = (i+j) % ni;
+            Pa |= 1<<(nf+k);
         }
         size_t Nd = all ^ (Var | Pa);
         Vector v(dim);
