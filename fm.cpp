@@ -315,20 +315,18 @@ void set_initial_state_iid(System& s, size_t width, size_t offset)
 //
 //     A0  A1  A2  A3
 //       B0  B1  B2
-void add_causal_constraints(System& s, size_t width, size_t branches, bool cyclic)
+void add_causal_constraints(System& s, size_t n_final, size_t n_init, size_t links)
 {
-    size_t num_final = cyclic ? width : width-1;
-    size_t num_vars = width + num_final;
-    size_t dim = 1<<num_vars;
+    size_t dim = 1<<(n_final+n_init);
     size_t all = dim-1;
     // for each dependent variable i, add the conditional mutual
     // independence 0 = I(i:Nd(i)|Pa(i)):
-    for (size_t i = 0; i < num_final; ++i) {
+    for (size_t i = 0; i < n_final; ++i) {
         size_t Var = 1<<i;
         size_t Pa = 0;
-        for (size_t j = 0; j < branches; ++j) {
-            size_t k = (i+j) % width;
-            Pa |= 1<<(num_final+k);
+        for (size_t j = 0; j < links; ++j) {
+            size_t k = (i+j) % n_init;
+            Pa |= 1<<(n_final+k);
         }
         size_t Nd = all ^ (Var | Pa);
         Vector v(dim);

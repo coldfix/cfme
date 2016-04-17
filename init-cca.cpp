@@ -44,7 +44,7 @@ try
         }
     }
 
-    size_t num_final = cyclic ? width : width-1;
+    size_t num_final = cyclic ? width : width-links+1;
     size_t num_vars = width + num_final;
 
     util::AutogenNotice gen(argc, argv);
@@ -52,7 +52,7 @@ try
     fm::System system = fm::elemental_inequalities(num_vars);
 
     fm::set_initial_state_iid(system, width, num_final);
-    fm::add_causal_constraints(system, width, links, cyclic);
+    fm::add_causal_constraints(system, num_final, width, links);
     fm::minimize{system}.run(fm::MinimizeStatusOutput(&cerr));
 
     cout << gen.str() << endl;

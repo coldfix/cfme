@@ -44,13 +44,13 @@ try
         }
     }
 
-    size_t num_final = cyclic ? width : width-1;
+    size_t num_final = cyclic ? width : width-links+1;
     size_t num_vars = width + num_final;
 
     util::AutogenNotice gen(argc, argv);
 
     fm::System system = fm::elemental_inequalities(num_vars);
-    fm::add_causal_constraints(system, width, links, cyclic);
+    fm::add_causal_constraints(system, num_final, width, links);
 
     for (auto&& constraint : fm::parse_matrix(util::read_file(cin))) {
         system.add_inequality(constraint.injection(system.num_cols, num_vars));
