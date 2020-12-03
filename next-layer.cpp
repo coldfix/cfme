@@ -7,7 +7,6 @@
 
 #include <cstdlib>      // atol
 #include <iostream>
-#include <random>
 #include "fm.h"
 
 #include "util.h"
@@ -34,8 +33,6 @@ try
     for (auto&& constraint : fm::parse_matrix(util::read_file(cin))) {
         system.add_inequality(constraint.injection(system.num_cols, width));
     }
-
-    random_shuffle(system.ineqs.begin(), system.ineqs.end());
 
     fm::minimize{system}.run(fm::MinimizeStatusOutput(&cerr));
 

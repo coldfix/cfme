@@ -2,6 +2,7 @@
 #include <cmath>    // NAN
 #include <glpk.h>
 #include "lp.h"
+#include "util.h"
 
 
 namespace lp
@@ -89,7 +90,8 @@ namespace lp
         parm.msg_lev = GLP_MSG_ERR;
         int result = glp_simplex(prob.get(), &parm);
         if (result != 0) {
-            throw std::runtime_error("Error in glp_simplex.");
+            auto msg = util::sprint_all("Error in glp_simplex: ", result);
+            throw std::runtime_error(msg.c_str());
         }
 
         int status = glp_get_status(prob.get());
@@ -117,7 +119,8 @@ namespace lp
         parm.meth = GLP_DUAL;
         int result = glp_simplex(lp, &parm);
         if (result != 0) {
-            throw std::runtime_error("Error in glp_simplex.");
+            auto msg = util::sprint_all("Error in glp_simplex (dual): ", result);
+            throw std::runtime_error(msg.c_str());
         }
         int status = glp_get_dual_stat(lp);
         if (status != GLP_FEAS) {

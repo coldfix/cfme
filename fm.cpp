@@ -1,6 +1,7 @@
 // Basic Fourier-Motzkin C++ API (eliminates variables from a system of
 // inequalities).
 
+#include <iostream>
 #include <iomanip>      // setw
 #include <utility>      // move
 
@@ -499,6 +500,7 @@ void minimize::run(const minimize::Callback& cb)
         lp.del_row(i);
         if (lp.is_redundant(sys.ineqs[i].values)) {
             sys.ineqs.erase(sys.ineqs.begin() + i);
+            std::cerr << "\n - " << i << std::endl;
         }
         else {
             lp.add_inequality(sys.ineqs[i].values);
